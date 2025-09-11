@@ -1,4 +1,5 @@
 The frontend is in the folder freewill
+
 The backend is in the folder freewill-backend
 
 ### To use the app on your phone during development, you need to:
