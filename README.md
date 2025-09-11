@@ -23,3 +23,19 @@ To use the app on your phone during development, you need to:
   Press [s] in the terminal
 
 6. Scan the QR code and choose 'Expo Go'
+
+To use backend server
+1. Change directory to freewill-backend
+  ``` bash
+  cd freewill-backend
+  ```
+
+2. Install all the dependencies
+  ``` bash
+  npm install
+  ```
+
+3. Start the server
+  ``` bash
+  nodemon server.js
+  ```
