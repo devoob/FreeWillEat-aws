@@ -9,8 +9,8 @@ export const lightColors = {
   primaryDark: '#16a34a',
   
   // Secondary colors
-  secondary: '#6b7280',
-  secondaryLight: '#f3f4f6',
+  secondary: '#f59e0b', // Orange - main accent color used across buttons, active states, etc.
+  secondaryLight: '#fef3c7', // Light orange background
   
   // Background colors
   background: '#F2F2F6',
@@ -51,8 +51,8 @@ export const darkColors = {
   primaryDark: '#16a34a',
   
   // Secondary colors
-  secondary: '#9ca3af',
-  secondaryLight: '#374151',
+  secondary: '#f59e0b', // Orange - main accent color used across buttons, active states, etc.
+  secondaryLight: '#92400e', // Darker orange for dark theme
   
   // Background colors
   background: '#111827',
@@ -443,6 +443,28 @@ export const globalStyles = StyleSheet.create({
 
 // Specialized component styles
 export const componentStyles = StyleSheet.create({
+  // Tab Bar Styles
+  tabBar: {
+    backgroundColor: '#ffffff',
+    borderTopWidth: 0,
+    paddingBottom: 8,
+    paddingTop: 8,
+    height: 90,
+    paddingHorizontal: 20,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  
+  tabBarLabel: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    marginTop: 4,
+  },
+  
+  tabBarItem: {
+    paddingVertical: 5,
+  },
+
   // Floating Action Button
   fab: {
     position: 'absolute' as const,
@@ -850,6 +872,28 @@ export const getComponentStyles = (theme: ActiveTheme) => {
   const themeColors = getColors(theme);
   
   return StyleSheet.create({
+    // Tab Bar Styles (Theme-aware)
+    tabBar: {
+      backgroundColor: themeColors.backgroundWhite,
+      borderTopWidth: 0,
+      paddingBottom: 8,
+      paddingTop: 8,
+      height: 90,
+      paddingHorizontal: 20,
+      elevation: 0,
+      shadowOpacity: 0,
+    },
+    
+    tabBarLabel: {
+      fontSize: 12,
+      fontWeight: '500' as const,
+      marginTop: 4,
+    },
+    
+    tabBarItem: {
+      paddingVertical: 5,
+    },
+
     // Floating Action Button
     fab: {
       position: 'absolute' as const,
@@ -974,6 +1018,81 @@ export const getComponentStyles = (theme: ActiveTheme) => {
       fontSize: typography.fontSize.xs,
       color: themeColors.primary,
       fontWeight: typography.fontWeight.semibold,
+    },
+
+    // Swipe Card Styles
+    swipeCardContainer: {
+      flex: 1,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingHorizontal: spacing.xl,
+    },
+    
+    swipeCard: {
+      borderRadius: 20,
+      ...shadows.large,
+      backgroundColor: themeColors.backgroundWhite,
+    },
+    
+    swipeCardImage: {
+      borderRadius: 20,
+    },
+    
+    swipeCardOverlay: {
+      flex: 1,
+      borderRadius: 20,
+      justifyContent: 'flex-end' as const,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    
+    swipeCardContent: {
+      padding: spacing.xl,
+    },
+    
+    swipeCardName: {
+      fontSize: typography.fontSize.huge,
+      fontWeight: typography.fontWeight.bold,
+      color: '#ffffff',
+      marginBottom: spacing.sm,
+    },
+    
+    swipeCardType: {
+      fontSize: typography.fontSize.lg,
+      color: '#e5e7eb',
+      fontWeight: typography.fontWeight.medium,
+      marginBottom: spacing.xs,
+    },
+    
+    swipeCardAddress: {
+      fontSize: typography.fontSize.md,
+      color: '#d1d5db',
+    },
+    
+    swipeActionButtons: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-around' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: spacing.massive,
+      paddingVertical: spacing.xl,
+    },
+    
+    swipeActionButton: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      ...shadows.medium,
+    },
+    
+    swipeRejectButton: {
+      backgroundColor: '#ffffff',
+      borderWidth: 2,
+      borderColor: '#ef4444',
+    },
+    
+    swipeLikeButton: {
+      backgroundColor: themeColors.secondary,
     },
   });
 };

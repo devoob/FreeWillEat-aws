@@ -12,7 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/styles/globalStyles';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'pallet' | 'hero';
+type Variant = 'primary' | 'secondary' | 'danger' | 'pallet' | 'hero' | 'orange';
 type Size = 'small' | 'medium' | 'large';
 
 interface CustomButtonProps {
@@ -75,13 +75,15 @@ const Button: React.FC<CustomButtonProps> = ({
   const getVariantStyles = () => {
     switch (variant) {
       case 'primary':
-        return { backgroundColor: themeColors.primary };
+        return { backgroundColor: themeColors.secondary }; // Orange primary button
       case 'secondary':
         return { 
           backgroundColor: themeColors.backgroundWhite,
           borderWidth: 1,
-          borderColor: themeColors.borderLight,
+          borderColor: themeColors.secondary, // Orange border
         };
+      case 'orange':
+        return { backgroundColor: themeColors.secondary }; // Explicit orange variant
       case 'danger':
         return { backgroundColor: '#ef4444' };
       case 'pallet':
@@ -106,7 +108,7 @@ const Button: React.FC<CustomButtonProps> = ({
           elevation: 8,
         };
       default:
-        return { backgroundColor: themeColors.primary };
+        return { backgroundColor: themeColors.secondary };
     }
   };
 
@@ -115,9 +117,11 @@ const Button: React.FC<CustomButtonProps> = ({
     
     switch (variant) {
       case 'primary':
-        return '#fff';
+        return '#fff'; // White text on orange background
       case 'secondary':
-        return themeColors.textSecondary;
+        return themeColors.secondary; // Orange text on white background
+      case 'orange':
+        return '#fff'; // White text on orange background
       case 'danger':
         return '#fff';
       case 'pallet':
@@ -134,9 +138,11 @@ const Button: React.FC<CustomButtonProps> = ({
     
     switch (variant) {
       case 'primary':
-        return '#fff';
+        return '#fff'; // White icon on orange background
       case 'secondary':
-        return themeColors.textSecondary;
+        return themeColors.secondary; // Orange icon on white background
+      case 'orange':
+        return '#fff'; // White icon on orange background
       case 'danger':
         return '#fff';
       case 'pallet':

@@ -1,91 +1,99 @@
 // app/(tabs)/_layout.tsx
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, spacing, shadows } from '@/styles/globalStyles';
+import { getColors } from '@/styles/globalStyles';
 
 
 export default function Layout() {
   const { activeTheme } = useTheme();
   const themeColors = getColors(activeTheme);
 
-
-  const styles = StyleSheet.create({
-    addButton: {
-      position: 'absolute',
-      bottom: 42,
-      left: '50%',
-      marginLeft: -28,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: themeColors.primary,
-      justifyContent: 'center',
-      alignItems: 'center',
-      ...shadows.medium,
-      zIndex: 1000,
-    },
-    modalContent: {
-      padding: spacing.lg,
-    },
-    actionsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      gap: spacing.md,
-    },
-    actionButton: {
-      width: '48%',
-      height: 120,
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: themeColors.secondaryLight,
-      borderWidth: 1,
-      borderColor: themeColors.borderMedium,
-      borderRadius: 12,
-      gap: 8,
-    },
-    actionButtonIcon: {
-      marginBottom: 4,
-    },
-    actionButtonText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: themeColors.textSecondary,
-      textAlign: 'center',
-    },
-  });
-
   return (
     <>
       <Tabs screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName: React.ComponentProps<typeof MaterialIcons>['name'] = 'home';
+        tabBarIcon: ({ color, size, focused }) => {
+          let IconComponent: any = MaterialIcons;
+          let iconName: string = 'home';
 
           switch (route.name) {
             case 'home':
+              IconComponent = MaterialIcons;
               iconName = 'home';
               break;
+            case 'explore':
+              IconComponent = MaterialIcons;
+              iconName = 'grid-view';
+              break;
+            case 'ai-chat':
+              IconComponent = Ionicons;
+              iconName = 'chatbubble';
+              break;
+            case 'liked':
+              IconComponent = Ionicons;
+              iconName = focused ? 'heart' : 'heart-outline';
+              break;
             default:
-              iconName = 'circle'; // fallback icon
+              IconComponent = MaterialIcons;
+              iconName = 'circle';
           }
 
-          return <MaterialIcons name={iconName} size={size} color={color} />;
+          return <IconComponent name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: themeColors.textSecondary,
+        tabBarActiveTintColor: themeColors.secondary,
+        tabBarInactiveTintColor: themeColors.textTertiary,
         tabBarStyle: {
           backgroundColor: themeColors.backgroundWhite,
-          borderTopColor: themeColors.borderLight,
+          borderTopWidth: 0,
           paddingBottom: 8,
-          height: 85,
+          paddingTop: 8,
+          height: 90,
           paddingHorizontal: 20,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginTop: 4,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 5,
         },
       })}>
-        <Tabs.Screen name="home" options={{ headerShown: false, title: 'Home' }}/>
+        <Tabs.Screen 
+          name="home" 
+          options={{ 
+            headerShown: false, 
+            title: 'Discover',
+            tabBarLabel: 'Discover'
+          }}
+        />
+        <Tabs.Screen 
+          name="explore" 
+          options={{ 
+            headerShown: false, 
+            title: 'Explore',
+            tabBarLabel: 'Explore'
+          }}
+        />
+        <Tabs.Screen 
+          name="ai-chat" 
+          options={{ 
+            headerShown: false, 
+            title: 'AI Chat',
+            tabBarLabel: 'AI Chat'
+          }}
+        />
+        <Tabs.Screen 
+          name="liked" 
+          options={{ 
+            headerShown: false, 
+            title: 'Liked',
+            tabBarLabel: 'Liked'
+          }}
+        />
       </Tabs>
     </>
   );
