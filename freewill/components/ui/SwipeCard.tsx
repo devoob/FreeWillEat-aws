@@ -6,6 +6,7 @@ import {
   Dimensions,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import {
   Gesture,
@@ -32,6 +33,9 @@ export interface Restaurant {
   address: string;
   image: string;
   rating?: number;
+  lat?: number;
+  lng?: number;
+  distance?: number;
 }
 
 interface SwipeCardProps {
@@ -58,15 +62,34 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   const scale = useSharedValue(isTop ? 1 : 0.95);
   const opacity = useSharedValue(1);
 
-  // Reset values when card changes and set image as loaded (since we prefetch all images)
+  // Reset values when card changes
   useEffect(() => {
-    setImageLoaded(true); // Images are prefetched, so mark as loaded immediately
+    setImageLoaded(false); // Reset image loaded state
     setImageError(false);
     translateX.value = 0;
     rotate.value = 0;
     scale.value = withSpring(isTop ? 1 : 0.95);
     opacity.value = 1;
-  }, [restaurant.id, isTop]);
+
+    // Check if image loads successfully
+    console.log(`Loading image for ${restaurant.name}:`, restaurant.image);
+
+    const checkImageLoad = () => {
+      Image.prefetch(restaurant.image)
+        .then(() => {
+          console.log(`Image loaded successfully for ${restaurant.name}`);
+          setImageLoaded(true);
+          setImageError(false);
+        })
+        .catch((error) => {
+          console.log(`Image failed to load for ${restaurant.name}:`, error);
+          setImageLoaded(true); // Still show the card even if image fails
+          setImageError(true);
+        });
+    };
+
+    checkImageLoad();
+  }, [restaurant.id, isTop, restaurant.image]);
 
   const handleSwipeComplete = (direction: number) => {
     if (direction > 0) {
@@ -148,12 +171,20 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
                   <Text style={styles.restaurantName}>{restaurant.name}</Text>
                   <Text style={styles.restaurantType}>{restaurant.type}</Text>
                   <Text style={styles.restaurantAddress}>{restaurant.address}</Text>
-                  {restaurant.rating && (
-                    <View style={styles.ratingContainer}>
-                      <MaterialIcons name="star" size={16} color={themeColors.secondary} />
-                      <Text style={styles.ratingText}>{restaurant.rating.toFixed(1)}</Text>
+                  <View style={styles.metaContainer}>
+                    {restaurant.rating && (
+                      <View style={styles.ratingContainer}>
+                        <MaterialIcons name="star" size={16} color={themeColors.secondary} />
+                        <Text style={styles.ratingText}>{restaurant.rating.toFixed(1)}</Text>
+                      </View>
+                    )}
+                    <View style={styles.distanceContainer}>
+                      <MaterialIcons name="place" size={16} color="#e5e7eb" />
+                      <Text style={styles.distanceText}>
+                        {restaurant.distance ? `${restaurant.distance} km away` : 'Distance: N/A'}
+                      </Text>
                     </View>
-                  )}
+                  </View>
                 </View>
               </View>
             </View>
@@ -164,6 +195,8 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
             style={styles.cardImage}
             imageStyle={styles.cardImageStyle}
             resizeMode="cover"
+            onLoad={() => console.log(`ImageBackground loaded for ${restaurant.name}`)}
+            onError={(error) => console.log(`ImageBackground error for ${restaurant.name}:`, error)}
           >
             <View style={styles.gradient}>
               <View style={styles.cardContent}>
@@ -171,12 +204,20 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
                   <Text style={styles.restaurantName}>{restaurant.name}</Text>
                   <Text style={styles.restaurantType}>{restaurant.type}</Text>
                   <Text style={styles.restaurantAddress}>{restaurant.address}</Text>
-                  {restaurant.rating && (
-                    <View style={styles.ratingContainer}>
-                      <MaterialIcons name="star" size={16} color={themeColors.secondary} />
-                      <Text style={styles.ratingText}>{restaurant.rating.toFixed(1)}</Text>
+                  <View style={styles.metaContainer}>
+                    {restaurant.rating && (
+                      <View style={styles.ratingContainer}>
+                        <MaterialIcons name="star" size={16} color={themeColors.secondary} />
+                        <Text style={styles.ratingText}>{restaurant.rating.toFixed(1)}</Text>
+                      </View>
+                    )}
+                    <View style={styles.distanceContainer}>
+                      <MaterialIcons name="place" size={16} color="#e5e7eb" />
+                      <Text style={styles.distanceText}>
+                        {restaurant.distance ? `${restaurant.distance} km away` : 'Distance: N/A'}
+                      </Text>
                     </View>
-                  )}
+                  </View>
                 </View>
               </View>
             </View>
@@ -243,16 +284,31 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.md,
     color: '#d1d5db',
   },
+  metaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+  },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    marginTop: spacing.sm,
   },
   ratingText: {
     fontSize: typography.fontSize.md,
     color: '#ffffff',
     fontWeight: typography.fontWeight.semibold,
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  distanceText: {
+    fontSize: typography.fontSize.sm,
+    color: '#e5e7eb',
+    fontWeight: typography.fontWeight.medium,
   },
   indicator: {
     position: 'absolute',

@@ -9,8 +9,9 @@ import {
   ScrollView,
   Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native'
-import React, { useState, useEffect } from 'react' 
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'expo-router'
 import { useTheme } from '@/contexts/ThemeContext'
 import { MaterialIcons } from '@expo/vector-icons'
@@ -19,6 +20,8 @@ import SafeScreenContainer from '@/components/ui/SafeScreenContainer'
 import SwipeCard, { Restaurant } from '@/components/ui/SwipeCard'
 import { getColors, getComponentStyles, spacing, typography } from '@/styles/globalStyles'
 import { useAuth } from '@/contexts/UserContext'
+import { fetchRestaurants } from '@/services/restaurantService'
+import * as Location from 'expo-location'
 
 
 // Sample restaurant data
@@ -107,41 +110,164 @@ const sampleRestaurants: Restaurant[] = [
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Distance calculation function
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  // Convert to numbers in case they're strings
+  const userLat = Number(lat1);
+  const userLon = Number(lon1);
+  const restLat = Number(lat2);
+  const restLon = Number(lon2);
+
+  console.log('Calculating distance between:', { userLat, userLon, restLat, restLon });
+
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (restLat - userLat) * Math.PI / 180;
+  const dLon = (restLon - userLon) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(userLat * Math.PI / 180) * Math.cos(restLat * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+
+  console.log('Calculated distance:', distance);
+  return distance;
+};
+
 const Home = () => {
   const { activeTheme } = useTheme();
   const router = useRouter();
   const themeColors = getColors(activeTheme);
   const componentStyles = getComponentStyles(activeTheme);
   const { logout, user } = useAuth();
-  
-  const [restaurants, setRestaurants] = useState<Restaurant[]>(sampleRestaurants);
+
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedRestaurants, setLikedRestaurants] = useState<Restaurant[]>([]);
   const [showLikedScreen, setShowLikedScreen] = useState(false);
   const [imagesPrefetched, setImagesPrefetched] = useState(false);
+  const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [locationPermission, setLocationPermission] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [distancesCalculated, setDistancesCalculated] = useState(false);
 
-  // Prefetch all restaurant images at startup
+  // Load restaurants and location on startup
   useEffect(() => {
-    const prefetchAllImages = async () => {
-      console.log('Starting to prefetch all restaurant images...');
-      const prefetchPromises = sampleRestaurants.map(restaurant => 
-        Image.prefetch(restaurant.image).catch((error) => {
-          console.log(`Failed to prefetch image for ${restaurant.name}:`, error);
-        })
-      );
-      
+    const initializeApp = async () => {
       try {
-        await Promise.all(prefetchPromises);
-        console.log('All restaurant images prefetched successfully');
+        // Request location permission
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          setLocationPermission(true);
+          try {
+            const location = await Location.getCurrentPositionAsync({});
+            console.log('Actual user location:', location.coords);
+
+            // For testing in Hong Kong, use HK coordinates instead of actual location
+            // Remove this override when you want real location
+            const hongKongLocation = {
+              latitude: 22.3193,  // Central Hong Kong
+              longitude: 114.1694
+            };
+
+            setUserLocation(hongKongLocation);
+            console.log('Using Hong Kong test location:', hongKongLocation);
+          } catch (locError) {
+            console.log('Error getting location:', locError);
+            // Fallback to Hong Kong location if GPS fails
+            setUserLocation({
+              latitude: 22.3193,
+              longitude: 114.1694
+            });
+          }
+        } else {
+          Alert.alert(
+            'Location Permission',
+            'Location permission is required to show distance to restaurants.',
+            [{ text: 'OK' }]
+          );
+        }
+
+        // Fetch restaurants from database
+        const fetchedRestaurants = await fetchRestaurants();
+
+        // Set restaurants first, distances will be calculated in the useEffect
+        setRestaurants(fetchedRestaurants);
+
+        // Prefetch first 10 images immediately, then continue with the rest
+        console.log('Starting to prefetch restaurant images...');
+        const firstBatch = fetchedRestaurants.slice(0, 10);
+        const remainingBatch = fetchedRestaurants.slice(10);
+
+        // Prefetch first 10 images
+        const firstBatchPromises = firstBatch.map(restaurant =>
+          Image.prefetch(restaurant.image).catch((error) => {
+            console.log(`Failed to prefetch image for ${restaurant.name}:`, error);
+          })
+        );
+
+        await Promise.all(firstBatchPromises);
+        console.log('First 10 images prefetched successfully');
         setImagesPrefetched(true);
+
+        // Continue prefetching remaining images in background
+        if (remainingBatch.length > 0) {
+          console.log(`Continuing to prefetch ${remainingBatch.length} more images in background...`);
+          const remainingPromises = remainingBatch.map(restaurant =>
+            Image.prefetch(restaurant.image).catch((error) => {
+              console.log(`Failed to prefetch image for ${restaurant.name}:`, error);
+            })
+          );
+
+          Promise.all(remainingPromises).then(() => {
+            console.log('All remaining images prefetched successfully');
+          }).catch(() => {
+            console.log('Some remaining images failed to prefetch, but continuing anyway');
+          });
+        }
       } catch (error) {
-        console.log('Some images failed to prefetch, but continuing anyway');
+        console.error('Error initializing app:', error);
+        Alert.alert('Error', 'Failed to load restaurants. Please try again.');
+        // Fallback to sample data
+        setRestaurants(sampleRestaurants);
         setImagesPrefetched(true);
+      } finally {
+        setLoading(false);
       }
     };
 
-    prefetchAllImages();
+    initializeApp();
   }, []);
+
+  // Calculate distances when both location and restaurants are available
+  useEffect(() => {
+    if (userLocation && restaurants.length > 0 && !distancesCalculated) {
+      console.log('Calculating distances for restaurants');
+      console.log('User location:', userLocation);
+      console.log('Restaurants count:', restaurants.length);
+
+      const restaurantsWithDistance = restaurants.map(restaurant => {
+        if (restaurant.lat && restaurant.lng) {
+          console.log(`Restaurant ${restaurant.name}:`, { lat: restaurant.lat, lng: restaurant.lng });
+          const distance = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            restaurant.lat,
+            restaurant.lng
+          );
+          console.log(`Distance to ${restaurant.name}:`, distance);
+          return { ...restaurant, distance: Math.round(distance * 10) / 10 };
+        } else {
+          console.log(`Restaurant ${restaurant.name} has no coordinates`);
+          return restaurant;
+        }
+      });
+
+      console.log('Setting restaurants with distances');
+      setRestaurants(restaurantsWithDistance);
+      setDistancesCalculated(true);
+    }
+  }, [userLocation, restaurants.length, distancesCalculated]);
 
   const handleSwipeLeft = (restaurant: Restaurant) => {
     console.log('Disliked:', restaurant.name);
@@ -173,15 +299,15 @@ const Home = () => {
     setLikedRestaurants([]);
   };
 
-  // Show loading screen until images are prefetched
-  if (!imagesPrefetched) {
+  // Show loading screen until everything is ready
+  if (loading || !imagesPrefetched) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeScreenContainer style={[{ backgroundColor: themeColors.background }, styles.container]}>
           <View style={styles.loadingScreen}>
             <ActivityIndicator size="large" color={themeColors.secondary} />
             <Text style={[styles.loadingText, { color: themeColors.textSecondary }]}>
-              Preparing restaurants...
+              {loading ? 'Loading restaurants...' : 'Preparing restaurants...'}
             </Text>
           </View>
         </SafeScreenContainer>

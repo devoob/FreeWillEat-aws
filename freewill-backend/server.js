@@ -9,6 +9,7 @@ import { globalRateLimit, authRateLimit, openaiRateLimit, uploadRateLimit } from
 
 // Routes
 import authRouter from './routes/auth.routes.js';
+import restaurantRouter from './routes/restaurant.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +44,7 @@ app.use(cors({
 }));
 
 app.use('/api/auth', authRateLimit, authRouter);
+app.use('/api/restaurants', globalRateLimit, restaurantRouter);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
