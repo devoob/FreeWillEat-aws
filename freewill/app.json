@@ -5,6 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
+    "extra": {
+      "eas": {
+        "projectId": "9c442997-2cc0-481a-98ce-23931931b740"
+      }
+    },
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

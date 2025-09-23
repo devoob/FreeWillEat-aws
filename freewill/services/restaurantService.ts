@@ -15,6 +15,15 @@ export interface RestaurantFromDB {
   updatedAt?: string;
 }
 
+export interface RestaurantPhoto {
+  id: string;
+  url: string;
+  restaurantId: string;
+  restaurantName: string;
+  address?: string;
+  region?: string;
+}
+
 export const fetchRestaurants = async (): Promise<Restaurant[]> => {
   try {
     const response = await api.get('/restaurants');
@@ -54,6 +63,19 @@ export const fetchRestaurants = async (): Promise<Restaurant[]> => {
     return transformedRestaurants;
   } catch (error) {
     console.error('Error fetching restaurants:', error);
+    throw error;
+  }
+};
+
+export const fetchRestaurantPhotos = async (): Promise<RestaurantPhoto[]> => {
+  try {
+    const response = await api.get('/restaurants/photos');
+    const photos: RestaurantPhoto[] = response.data.data;
+
+    console.log('Fetched photos:', photos.length);
+    return photos;
+  } catch (error) {
+    console.error('Error fetching restaurant photos:', error);
     throw error;
   }
 };

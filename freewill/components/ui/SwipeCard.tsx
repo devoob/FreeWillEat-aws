@@ -71,13 +71,9 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
     scale.value = withSpring(isTop ? 1 : 0.95);
     opacity.value = 1;
 
-    // Check if image loads successfully
-    console.log(`Loading image for ${restaurant.name}:`, restaurant.image);
-
     const checkImageLoad = () => {
       Image.prefetch(restaurant.image)
         .then(() => {
-          console.log(`Image loaded successfully for ${restaurant.name}`);
           setImageLoaded(true);
           setImageError(false);
         })

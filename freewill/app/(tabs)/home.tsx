@@ -161,17 +161,10 @@ const Home = () => {
           setLocationPermission(true);
           try {
             const location = await Location.getCurrentPositionAsync({});
-            console.log('Actual user location:', location.coords);
-
-            // For testing in Hong Kong, use HK coordinates instead of actual location
-            // Remove this override when you want real location
-            const hongKongLocation = {
-              latitude: 22.3193,  // Central Hong Kong
-              longitude: 114.1694
-            };
-
-            setUserLocation(hongKongLocation);
-            console.log('Using Hong Kong test location:', hongKongLocation);
+            setUserLocation({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude
+            });
           } catch (locError) {
             console.log('Error getting location:', locError);
             // Fallback to Hong Kong location if GPS fails
@@ -263,7 +256,6 @@ const Home = () => {
         }
       });
 
-      console.log('Setting restaurants with distances');
       setRestaurants(restaurantsWithDistance);
       setDistancesCalculated(true);
     }
