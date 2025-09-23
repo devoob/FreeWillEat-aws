@@ -12,6 +12,7 @@ if (Platform.OS === 'ios') {
 type User = {
   id: string;
   email: string;
+  fullName?: string;
 };
 
 type AuthContextType = {

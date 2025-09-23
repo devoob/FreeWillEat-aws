@@ -30,9 +30,13 @@ export default function Layout() {
               IconComponent = Ionicons;
               iconName = 'chatbubble';
               break;
-            case 'liked':
+            case 'profile':
               IconComponent = Ionicons;
-              iconName = focused ? 'heart' : 'heart-outline';
+              iconName = 'person';
+              break;
+            case 'settings':
+              IconComponent = Ionicons;
+              iconName = 'settings';
               break;
             default:
               IconComponent = MaterialIcons;
@@ -87,11 +91,19 @@ export default function Layout() {
           }}
         />
         <Tabs.Screen 
-          name="liked" 
+          name="profile" 
           options={{ 
             headerShown: false, 
-            title: 'Liked',
-            tabBarLabel: 'Liked'
+            title: 'Profile',
+            tabBarLabel: 'Profile'
+          }}
+        />
+        <Tabs.Screen 
+          name="settings" 
+          options={{ 
+            headerShown: false, 
+            title: 'Settings',
+            tabBarLabel: 'Settings'
           }}
         />
       </Tabs>

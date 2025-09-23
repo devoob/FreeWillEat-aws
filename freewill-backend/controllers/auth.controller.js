@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { verifyAppleToken } from '../utils/appleAuth.js';
+import { ensureUserHasFullName } from '../utils/nameGenerator.js';
 
 // Register
 const register = async (req, res) => {
@@ -65,6 +66,10 @@ const getUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) return res.status(404).json({ msg: 'User not found' });
+    
+    // Ensure user has a fullName, generate one if needed
+    await ensureUserHasFullName(user);
+    
     return res.status(200).json(user);
   } catch (err) {
     console.error(err);
