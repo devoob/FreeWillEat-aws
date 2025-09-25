@@ -425,14 +425,6 @@ const Home = () => {
         </Animated.View>
       </View>
 
-      {/* Debug Logout Button */}
-      <TouchableOpacity 
-        style={styles.logoutButton}
-        onPress={async () => {await logout(); router.replace('/login')}}
-      >
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-
       {/* Liked Restaurants Modal */}
       <Modal
         visible={showLikedScreen}

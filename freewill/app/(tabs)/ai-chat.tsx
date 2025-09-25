@@ -48,7 +48,6 @@ export default function AIChatScreen() {
   const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Chat session management
@@ -148,29 +147,6 @@ export default function AIChatScreen() {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
-
-    const onShow = () => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setKeyboardVisible(true);
-    };
-    const onHide = () => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setKeyboardVisible(false);
-    };
-
-    // iOS will* events animate in sync with keyboard
-    const willShow = Keyboard.addListener('keyboardWillShow', onShow);
-    const willHide = Keyboard.addListener('keyboardWillHide', onHide);
-    // Android fallbacks
-    const didShow = Keyboard.addListener('keyboardDidShow', onShow);
-    const didHide = Keyboard.addListener('keyboardDidHide', onHide);
-
-    return () => {
-      willShow.remove();
-      willHide.remove();
-      didShow.remove();
-      didHide.remove();
-    };
   }, []);
 
   useEffect(() => {
@@ -262,6 +238,7 @@ export default function AIChatScreen() {
       setLoading(false);
     }
   };
+
 
   const styles = StyleSheet.create({
     container: {
@@ -478,7 +455,6 @@ export default function AIChatScreen() {
       alignItems: 'center',
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.sm,
-      paddingBottom: 0,
       backgroundColor: themeColors.backgroundWhite,
       borderTopWidth: 1,
       borderTopColor: themeColors.borderLight,
@@ -493,6 +469,7 @@ export default function AIChatScreen() {
       height: 48,
       fontSize: typography.fontSize.md,
       color: themeColors.textPrimary,
+      backgroundColor: themeColors.background,
       paddingVertical: spacing.sm,
     },
     sendButton: {
@@ -728,69 +705,68 @@ export default function AIChatScreen() {
         </View>
       )}
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
+      <View style={{ flex: 1 }}>
         <ScrollView
           style={styles.chatContainer}
-          contentContainerStyle={{ 
-            paddingBottom: keyboardVisible ? spacing.lg : spacing.sm,
-            paddingTop: messages.length > 0 ? spacing.lg : 0
+          contentContainerStyle={{
+            paddingBottom: spacing.lg,
+            paddingTop: messages.length > 0 ? spacing.lg : 0,
+            flexGrow: 1,
           }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="never"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
           ref={scrollViewRef}
           onContentSizeChange={() => {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             scrollViewRef.current?.scrollToEnd({ animated: true });
           }}
+          onScrollBeginDrag={() => Keyboard.dismiss()}
         >
-          {messages.map((msg, index) => (
-            <View
-              key={index}
-              style={[
-                styles.messageContainer,
-                msg.isUser ? styles.userMessage : styles.aiMessage,
-              ]}
-            >
-              {!msg.isUser && (
-                <View style={styles.aiMessageHeader}>
-                  <Text style={styles.aiLabel}>AI-Powered Restaurant Finder</Text>
-                </View>
-              )}
-              <Text
+              {messages.map((msg, index) => (
+              <View
+                key={index}
                 style={[
-                  styles.messageText,
-                  msg.isUser
-                    ? styles.userMessageText
-                    : styles.aiMessageText,
+                  styles.messageContainer,
+                  msg.isUser ? styles.userMessage : styles.aiMessage,
                 ]}
               >
-                {msg.text}
-              </Text>
-              {/* If AI provided a restaurant image, show it below the text */}
-              {!msg.isUser && msg.imageUrl && (
-                <Image source={{ uri: msg.imageUrl }} style={styles.aiImage} resizeMode="cover" />
-              )}
-            </View>
-          ))}
-          {loading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={themeColors.secondary} />
-              <Text style={styles.loadingText}>AI is thinking...</Text>
-            </View>
-          )}
+                {!msg.isUser && (
+                  <View style={styles.aiMessageHeader}>
+                    <Text style={styles.aiLabel}>AI-Powered Restaurant Finder</Text>
+                  </View>
+                )}
+                <Text
+                  style={[
+                    styles.messageText,
+                    msg.isUser
+                      ? styles.userMessageText
+                      : styles.aiMessageText,
+                  ]}
+                >
+                  {msg.text}
+                </Text>
+                {/* If AI provided a restaurant image, show it below the text */}
+                {!msg.isUser && msg.imageUrl && (
+                  <Image source={{ uri: msg.imageUrl }} style={styles.aiImage} resizeMode="cover" />
+                )}
+              </View>
+            ))}
+            {loading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={themeColors.secondary} />
+                <Text style={styles.loadingText}>AI is thinking...</Text>
+              </View>
+            )}
         </ScrollView>
-        
-        {/* Modern Search Input */}
-        <View
-          style={[
-            styles.inputContainer,
-            { paddingBottom: keyboardVisible ? 6 : 0 },
-          ]}
-        >
+      </View>
+
+      {/* Modern Search Input */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'position' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? -insets.bottom : 0}
+      >
+        <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 70 }]}>
           <View style={styles.searchInputWrapper}>
             <TextInput
               style={styles.textInput}
