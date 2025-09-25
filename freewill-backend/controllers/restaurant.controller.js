@@ -82,3 +82,11 @@ export const getRestaurantPhotos = async (req, res) => {
     });
   }
 };
+
+const getRecommendedRestaurants = async (userLocation) => {
+  const longitude = userLocation.longitude;
+  const langitude = userLocaltion.langitude;
+
+  // ...
+
+}
