@@ -90,7 +90,10 @@ const Profile = () => {
 
   return (
     <SafeScreenContainer style={[{ backgroundColor: themeColors.background }, styles.container]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Profile Header */}
         <View style={[styles.profileHeader, { backgroundColor: themeColors.backgroundWhite }]}>
           <View style={styles.profileTop}>
@@ -218,6 +221,10 @@ const Profile = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.massive,
   },
   profileHeader: {
     paddingHorizontal: spacing.lg,
@@ -392,7 +399,8 @@ const styles = StyleSheet.create({
   },
   bottomSection: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.massive * 2,
+    marginBottom: spacing.xl,
   },
   closeAccountButton: {
     borderWidth: 1,

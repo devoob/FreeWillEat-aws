@@ -79,3 +79,26 @@ export const fetchRestaurantPhotos = async (): Promise<RestaurantPhoto[]> => {
     throw error;
   }
 };
+
+export const fetchRestaurantAdditionalPhotos = async (restaurantId: string): Promise<string[]> => {
+  try {
+    const response = await api.get(`/restaurants/${restaurantId}`);
+    const restaurant: RestaurantFromDB = response.data.data;
+
+    const additionalPhotos: string[] = [];
+
+    // Add photo2 and photo3 if they exist
+    if (restaurant.photo2) {
+      additionalPhotos.push(restaurant.photo2);
+    }
+    if (restaurant.photo3) {
+      additionalPhotos.push(restaurant.photo3);
+    }
+
+    console.log(`Fetched ${additionalPhotos.length} additional photos for restaurant ${restaurantId}`);
+    return additionalPhotos;
+  } catch (error) {
+    console.error('Error fetching additional restaurant photos:', error);
+    throw error;
+  }
+};

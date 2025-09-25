@@ -22,6 +22,7 @@ import { getColors, getComponentStyles, spacing, typography } from '@/styles/glo
 import { useAuth } from '@/contexts/UserContext'
 import { fetchRestaurants } from '@/services/restaurantService'
 import * as Location from 'expo-location'
+import { BlurView } from 'expo-blur'
 
 
 // Sample restaurant data
@@ -356,17 +357,28 @@ const Home = () => {
 
       {/* Floating Like Counter */}
       <View style={styles.floatingControls}>
-        <Text style={[styles.likeCounter, { color: themeColors.secondary }]}>
-          ❤️ {likedRestaurants.length}
-        </Text>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={styles.likeCounter}
+        >
+          <Text style={[styles.likeCounterText, { color: themeColors.secondary }]}>
+            ❤️ {likedRestaurants.length}
+          </Text>
+        </BlurView>
       </View>
 
       {/* Debug Logout Button */}
-      <TouchableOpacity 
-        style={styles.logoutButton}
+      <TouchableOpacity
         onPress={async () => {await logout(); router.replace('/login')}}
       >
-        <Text style={styles.logoutText}>Logout</Text>
+        <BlurView
+          intensity={80}
+          tint="dark"
+          style={styles.logoutButton}
+        >
+          <Text style={styles.logoutText}>Logout</Text>
+        </BlurView>
       </TouchableOpacity>
 
       {/* Liked Restaurants Modal */}
@@ -442,18 +454,27 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     zIndex: 1000,
   },
   likeCounter: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  likeCounterText: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
   },
   resetButton: {
     padding: spacing.md,
@@ -492,15 +513,26 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     position: 'absolute',
-    top: 50,
-    right: 20,
-    padding: spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    borderRadius: 20,
+    top: 60,
+    right: spacing.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+    overflow: 'hidden',
   },
   logoutText: {
-    fontSize: typography.fontSize.xs,
-    color: '#666',
+    fontSize: typography.fontSize.sm,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: typography.fontWeight.medium,
   },
   modalHeader: {
     flexDirection: 'row',

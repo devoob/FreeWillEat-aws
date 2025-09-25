@@ -71,7 +71,10 @@ const Settings = () => {
 
   return (
     <SafeScreenContainer style={[{ backgroundColor: themeColors.background }, styles.container]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>
@@ -276,6 +279,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.massive,
+  },
   header: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
@@ -381,7 +388,8 @@ const styles = StyleSheet.create({
   },
   logoutSection: {
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.massive * 2,
+    paddingBottom: spacing.xl,
   },
 });
 

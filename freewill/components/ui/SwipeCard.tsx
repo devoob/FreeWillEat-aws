@@ -239,9 +239,10 @@ const styles = StyleSheet.create({
   card: {
     position: 'absolute',
     width: SCREEN_WIDTH - 40,
-    height: SCREEN_HEIGHT * 0.7,
+    height: SCREEN_HEIGHT * 0.65,
     borderRadius: 20,
     ...shadows.large,
+    marginBottom: 120,
   },
   cardImage: {
     flex: 1,

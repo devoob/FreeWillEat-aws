@@ -1026,6 +1026,7 @@ export const getComponentStyles = (theme: ActiveTheme) => {
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       paddingHorizontal: spacing.xl,
+      paddingBottom: spacing.massive,
     },
     
     swipeCard: {
