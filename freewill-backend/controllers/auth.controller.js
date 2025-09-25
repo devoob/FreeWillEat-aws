@@ -259,4 +259,50 @@ const getApiUsage = async (req, res) => {
   }
 };
 
-export { register, login, logout, getUser, appleLogin, linkAccount, getApiUsage };
+// Update user profile
+const updateProfile = async (req, res) => {
+  try {
+    const { fullName } = req.body;
+
+    // Validate input
+    if (!fullName) {
+      return res.status(400).json({ msg: 'Full name is required' });
+    }
+
+    // Validate full name length and format
+    if (fullName.trim().length < 1 || fullName.length > 100) {
+      return res.status(400).json({ msg: 'Full name must be between 1 and 100 characters' });
+    }
+
+    // Find and update the user
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { fullName: fullName.trim() },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    console.log('Profile updated for user:', {
+      id: user._id,
+      email: user.email,
+      newFullName: user.fullName
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: user
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    return res.status(500).json({
+      success: false,
+      msg: 'Server error updating profile'
+    });
+  }
+};
+
+export { register, login, logout, getUser, appleLogin, linkAccount, getApiUsage, updateProfile };

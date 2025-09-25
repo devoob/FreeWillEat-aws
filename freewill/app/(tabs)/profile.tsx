@@ -7,6 +7,9 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  TextInput,
+  Alert,
+  Modal,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -28,9 +31,14 @@ interface ProfileMenuItem {
 
 const Profile = () => {
   const { activeTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const router = useRouter();
   const themeColors = getColors(activeTheme);
+
+  // State for editing profile
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const profileMenuItems: ProfileMenuItem[] = [
     {
@@ -88,6 +96,39 @@ const Profile = () => {
     // Handle navigation to different sections
   };
 
+  const handleEditName = () => {
+    setTempName(user?.fullName || '');
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!tempName.trim()) {
+      Alert.alert('Error', 'Name cannot be empty');
+      return;
+    }
+
+    if (tempName.trim() === user?.fullName) {
+      setIsEditingName(false);
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      await updateProfile(tempName.trim());
+      setIsEditingName(false);
+      Alert.alert('Success', 'Profile updated successfully');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update profile');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setTempName('');
+  };
+
   return (
     <SafeScreenContainer style={[{ backgroundColor: themeColors.background }, styles.container]}>
       <ScrollView
@@ -104,9 +145,17 @@ const Profile = () => {
                 </Text>
               </View>
               <View style={styles.profileInfo}>
-                <Text style={[styles.profileName, { color: themeColors.textPrimary }]}>
-                  {user?.fullName || 'User'}
-                </Text>
+                <View style={styles.nameContainer}>
+                  <Text style={[styles.profileName, { color: themeColors.textPrimary }]}>
+                    {user?.fullName || 'User'}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.editNameButton}
+                    onPress={handleEditName}
+                  >
+                    <MaterialIcons name="edit" size={16} color={themeColors.secondary} />
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.levelContainer}>
                   <Text style={[styles.levelText, { color: themeColors.textSecondary }]}>
                     Level 1
@@ -119,21 +168,8 @@ const Profile = () => {
             </View>
             
             <View style={styles.profileRight}>
-              <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: themeColors.textPrimary }]}>0</Text>
-                  <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Followers</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: themeColors.textPrimary }]}>0</Text>
-                  <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Following</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={[styles.editButton, { borderColor: themeColors.border }]}>
-                <Text style={[styles.editButtonText, { color: themeColors.textSecondary }]}>
-                  Edit Profile
-                </Text>
-              </TouchableOpacity>
+              
+              
             </View>
           </View>
         </View>
@@ -214,6 +250,78 @@ const Profile = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Edit Name Modal */}
+      <Modal
+        visible={isEditingName}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCancelEdit}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.backgroundWhite }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>
+                Edit Name
+              </Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={handleCancelEdit}
+              >
+                <MaterialIcons name="close" size={24} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={[styles.inputLabel, { color: themeColors.textSecondary }]}>
+                Full Name
+              </Text>
+              <TextInput
+                style={[
+                  styles.nameInput,
+                  {
+                    backgroundColor: themeColors.background,
+                    borderColor: themeColors.border,
+                    color: themeColors.textPrimary
+                  }
+                ]}
+                value={tempName}
+                onChangeText={setTempName}
+                placeholder="Enter your full name"
+                placeholderTextColor={themeColors.textSecondary}
+                maxLength={100}
+                autoFocus
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton, { borderColor: themeColors.border }]}
+                  onPress={handleCancelEdit}
+                >
+                  <Text style={[styles.cancelButtonText, { color: themeColors.textSecondary }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modalButton,
+                    styles.saveButton,
+                    { backgroundColor: themeColors.secondary },
+                    isUpdating && styles.disabledButton
+                  ]}
+                  onPress={handleSaveName}
+                  disabled={isUpdating}
+                >
+                  <Text style={[styles.saveButtonText, { color: '#fff' }]}>
+                    {isUpdating ? 'Saving...' : 'Save'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeScreenContainer>
   );
 };
@@ -410,6 +518,87 @@ const styles = StyleSheet.create({
   },
   closeAccountText: {
     fontSize: 14,
+  },
+  // Edit Name Styles
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  editNameButton: {
+    marginLeft: spacing.sm,
+    padding: spacing.xs,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    borderRadius: borderRadius.lg,
+    ...shadows.large,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  modalTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+  },
+  modalCloseButton: {
+    padding: spacing.sm,
+  },
+  modalBody: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+  },
+  inputLabel: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.medium,
+    marginBottom: spacing.sm,
+  },
+  nameInput: {
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontSize: typography.fontSize.lg,
+    marginBottom: spacing.xl,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  saveButton: {
+    // backgroundColor set dynamically
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  cancelButtonText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.medium,
+  },
+  saveButtonText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
   },
 });
 

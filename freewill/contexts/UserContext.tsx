@@ -23,6 +23,7 @@ type AuthContextType = {
   appleLogin: () => Promise<{ needsAccountLinking?: boolean; identityToken?: string }>;
   logout: () => Promise<void>;
   verifyToken: () => Promise<void>;
+  updateProfile: (fullName: string) => Promise<void>;
   setUser: (user: User | null) => void;
 };
 
@@ -141,6 +142,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateProfile = async (fullName: string) => {
+    const token = await SecureStore.getItemAsync('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      const res = await fetch(`http://${LOCALHOST}:3001/api/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ fullName }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Update the user state with the new data
+        setUser(data.user);
+      } else {
+        throw new Error(data.msg || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  };
+
 
   useEffect(() => {
     const checkToken = async () => {
@@ -168,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, appleLogin, logout, verifyToken, setUser }}>
+    <AuthContext.Provider value={{ user, loading, register, login, appleLogin, logout, verifyToken, updateProfile, setUser }}>
       {children}
     </AuthContext.Provider>
   );
