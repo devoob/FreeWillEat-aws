@@ -7,7 +7,7 @@ import { getColors, spacing, typography, borderRadius } from '@/styles/globalSty
 interface CollapsibleSectionHeaderProps {
   title: string;
   subtitle: string;
-  icon: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
   isExpanded: boolean;
   onToggle: () => void;
 }
@@ -23,64 +23,67 @@ const CollapsibleSectionHeader: React.FC<CollapsibleSectionHeaderProps> = ({
   const themeColors = getColors(activeTheme);
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.collapsibleHeader, 
-        { 
-          backgroundColor: themeColors.backgroundWhite, 
-          borderColor: themeColors.borderLight,
-          borderBottomWidth: isExpanded ? 0 : 1,
-          borderBottomLeftRadius: isExpanded ? 0 : borderRadius.md,
-          borderBottomRightRadius: isExpanded ? 0 : borderRadius.md,
-        }
-      ]}
-      onPress={onToggle}
-      activeOpacity={0.7}
-    >
-      <View style={styles.headerContent}>
-        <MaterialIcons name={icon as any} size={24} color={themeColors.primary} />
-        <View style={styles.headerText}>
-          <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>{title}</Text>
-          <Text style={[styles.headerSubtitle, { color: themeColors.textSecondary }]}>{subtitle}</Text>
+    <View style={styles.headerContainer}>
+      <TouchableOpacity
+        style={[
+          styles.collapsibleHeader,
+          {
+            backgroundColor: 'transparent',
+          },
+        ]}
+        onPress={onToggle}
+        activeOpacity={0.7}
+      >
+        <View style={styles.headerLeftRow}>
+          <MaterialIcons name={icon} size={24} color={themeColors.textPrimary} style={styles.leadingIcon} />
+          <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]} numberOfLines={1}>
+            {title}
+          </Text>
         </View>
-      </View>
-      <MaterialIcons 
-        name={isExpanded ? 'expand-less' : 'expand-more'} 
-        size={24} 
-        color={themeColors.textSecondary} 
-      />
-    </TouchableOpacity>
+        <MaterialIcons
+          name={isExpanded ? 'expand-less' : 'expand-more'}
+          size={24}
+          color={themeColors.textSecondary}
+        />
+      </TouchableOpacity>
+
+      {!!subtitle && (
+        <Text style={[styles.headerSubtitle, { color: themeColors.textSecondary, paddingHorizontal: spacing.lg }]}>
+          {subtitle}
+        </Text>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    marginBottom: 0,
+  },
   collapsibleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
     marginBottom: 0,
   },
-  headerContent: {
+  headerLeftRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    flexShrink: 1,
   },
-  headerText: {
-    flex: 1,
-    marginLeft: spacing.md,
+  leadingIcon: {
+    marginRight: spacing.sm,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: typography.fontWeight.bold,
-    marginBottom: spacing.xs,
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.semibold,
   },
   headerSubtitle: {
     fontSize: typography.fontSize.md,
     fontWeight: typography.fontWeight.normal,
+    marginTop: spacing.xs,
   },
 });
 

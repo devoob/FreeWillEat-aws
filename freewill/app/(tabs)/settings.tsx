@@ -14,6 +14,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/UserContext';
 import SafeScreenContainer from '@/components/ui/SafeScreenContainer';
 import Button from '@/components/ui/Button';
+import ThemeSettings from '@/components/settings/ThemeSettings';
 import { getColors, spacing, typography, borderRadius, shadows } from '@/styles/globalStyles';
 
 interface MealPreference {
@@ -24,10 +25,12 @@ interface MealPreference {
 }
 
 const Settings = () => {
-  const { activeTheme, toggleTheme } = useTheme();
+  const { activeTheme } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
   const themeColors = getColors(activeTheme);
+
+  const [showThemeSettings, setShowThemeSettings] = useState(false);
 
   const [mealPreferences, setMealPreferences] = useState<MealPreference[]>([
     { id: 'vegetarian', name: 'Vegetarian', icon: 'eco', enabled: false },
@@ -127,7 +130,7 @@ const Settings = () => {
                       : themeColors.background,
                     borderColor: preference.enabled 
                       ? themeColors.secondary 
-                      : themeColors.border,
+                      : themeColors.borderLight,
                   }
                 ]}
                 onPress={() => togglePreference(preference.id)}
@@ -160,6 +163,12 @@ const Settings = () => {
           </View>
         </View>
 
+        {/* Theme Settings */}
+        <ThemeSettings 
+          showThemeSettings={showThemeSettings}
+          onToggle={() => setShowThemeSettings(!showThemeSettings)}
+        />
+
         {/* App Settings Section */}
         <View style={[styles.section, { backgroundColor: themeColors.backgroundWhite }]}>
           <View style={styles.sectionHeader}>
@@ -171,21 +180,6 @@ const Settings = () => {
 
           <TouchableOpacity style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Ionicons name="moon" size={20} color={themeColors.textSecondary} />
-              <Text style={[styles.settingText, { color: themeColors.textPrimary }]}>
-                Dark Mode
-              </Text>
-            </View>
-            <Switch
-              value={activeTheme === 'dark'}
-              onValueChange={toggleTheme}
-              trackColor={{ false: themeColors.border, true: `${themeColors.secondary}50` }}
-              thumbColor={activeTheme === 'dark' ? themeColors.secondary : '#f4f3f4'}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
               <MaterialIcons name="notifications" size={20} color={themeColors.textSecondary} />
               <Text style={[styles.settingText, { color: themeColors.textPrimary }]}>
                 Push Notifications
@@ -193,7 +187,7 @@ const Settings = () => {
             </View>
             <Switch
               value={true}
-              trackColor={{ false: themeColors.border, true: `${themeColors.secondary}50` }}
+              trackColor={{ false: themeColors.borderLight, true: `${themeColors.secondary}50` }}
               thumbColor={themeColors.secondary}
             />
           </TouchableOpacity>
@@ -207,7 +201,7 @@ const Settings = () => {
             </View>
             <Switch
               value={true}
-              trackColor={{ false: themeColors.border, true: `${themeColors.secondary}50` }}
+              trackColor={{ false: themeColors.borderLight, true: `${themeColors.secondary}50` }}
               thumbColor={themeColors.secondary}
             />
           </TouchableOpacity>

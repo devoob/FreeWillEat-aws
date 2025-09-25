@@ -79,3 +79,13 @@ export const fetchRestaurantPhotos = async (): Promise<RestaurantPhoto[]> => {
     throw error;
   }
 };
+
+export const getAiRestaurantSuggestion = async (message: string): Promise<string> => {
+  try {
+    const response = await api.post('/restaurants/ai-suggestion', { message });
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching AI restaurant suggestion:', error);
+    throw error;
+  }
+};

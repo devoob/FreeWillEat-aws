@@ -11,77 +11,162 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  ScrollView
+  ScrollView,
+  Animated,
+  RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, spacing, typography } from '@/styles/globalStyles';
+import { getColors, spacing, typography, borderRadius } from '@/styles/globalStyles';
 import { fetchRestaurantPhotos, RestaurantPhoto } from '@/services/restaurantService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PHOTO_SIZE = SCREEN_WIDTH / 3; // Perfect 3 columns, no margins
+const PHOTO_SIZE = SCREEN_WIDTH / 3; // 3 columns
 
 export default function ExploreScreen() {
   const { activeTheme } = useTheme();
   const themeColors = getColors(activeTheme);
 
+  // Photos + search
   const [photos, setPhotos] = useState<RestaurantPhoto[]>([]);
   const [filteredPhotos, setFilteredPhotos] = useState<RestaurantPhoto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Modal + interactions
   const [selectedPhoto, setSelectedPhoto] = useState<RestaurantPhoto | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [likedPhotos, setLikedPhotos] = useState<Record<string, boolean>>({});
+  const [savedPhotos, setSavedPhotos] = useState<Record<string, boolean>>({});
+  const [likesCount, setLikesCount] = useState<Record<string, number>>({});
+  const [photoComments, setPhotoComments] = useState<Record<string, { id: string; text: string; createdAt: number }[]>>({});
+  const [newComment, setNewComment] = useState('');
 
-  // Load photos on component mount
+  // Animation values
+  const [likeAnimation] = useState(new Animated.Value(1));
+  const [saveAnimation] = useState(new Animated.Value(1));
+
+  // Load photos
   useEffect(() => {
-    const loadPhotos = async () => {
-      try {
-        const fetchedPhotos = await fetchRestaurantPhotos();
-        setPhotos(fetchedPhotos);
-        setFilteredPhotos(fetchedPhotos);
-      } catch (error) {
-        console.error('Error loading photos:', error);
-        Alert.alert('Error', 'Failed to load restaurant photos');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadPhotos();
   }, []);
 
-  // Filter photos based on search query
+  const loadPhotos = async () => {
+    try {
+      const fetched = await fetchRestaurantPhotos();
+      // Shuffle photos for refresh variety
+      const shuffled = [...fetched].sort(() => Math.random() - 0.5);
+      setPhotos(shuffled);
+      setFilteredPhotos(shuffled);
+    } catch (e) {
+      console.error('Error loading photos:', e);
+      Alert.alert('Error', 'Failed to load restaurant photos');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadPhotos();
+  };
+
+  // Filter
   useEffect(() => {
-    if (searchQuery.trim() === '') {
+    if (!searchQuery.trim()) {
       setFilteredPhotos(photos);
     } else {
-      const filtered = photos.filter(photo =>
-        photo.restaurantName?.toLowerCase().includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase();
+      setFilteredPhotos(
+        photos.filter((p) => p.restaurantName?.toLowerCase().includes(q))
       );
-      setFilteredPhotos(filtered);
     }
   }, [searchQuery, photos]);
 
+  // Modal handlers
   const openPhotoModal = (photo: RestaurantPhoto) => {
     setSelectedPhoto(photo);
     setModalVisible(true);
+    // Initialize local counts/comments once
+    setLikesCount((prev) => ({
+      ...prev,
+      [photo.id]: prev[photo.id] ?? Math.floor(Math.random() * 50),
+    }));
+    setPhotoComments((prev) => ({ ...prev, [photo.id]: prev[photo.id] ?? [] }));
   };
 
   const closePhotoModal = () => {
     setModalVisible(false);
     setSelectedPhoto(null);
+    setNewComment('');
   };
 
+  // Interactions
+  const toggleLike = () => {
+    if (!selectedPhoto) return;
+    const id = selectedPhoto.id;
+    
+    // Animate like button
+    Animated.sequence([
+      Animated.timing(likeAnimation, {
+        toValue: 1.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(likeAnimation, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setLikedPhotos((prev) => ({ ...prev, [id]: !prev[id] }));
+    setLikesCount((prev) => ({
+      ...prev,
+      [id]: (prev[id] ?? 0) + (likedPhotos[id] ? -1 : 1),
+    }));
+  };
+
+  const toggleSave = () => {
+    if (!selectedPhoto) return;
+    const id = selectedPhoto.id;
+    
+    // Animate save button
+    Animated.sequence([
+      Animated.timing(saveAnimation, {
+        toValue: 1.2,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(saveAnimation, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setSavedPhotos((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const addComment = () => {
+    if (!selectedPhoto) return;
+    const text = newComment.trim();
+    if (!text) return;
+    const id = selectedPhoto.id;
+    const comment = { id: `${Date.now()}`, text, createdAt: Date.now() };
+    setPhotoComments((prev) => ({
+      ...prev,
+      [id]: [...(prev[id] ?? []), comment],
+    }));
+    setNewComment('');
+  };
+
+  // Grid item
   const renderPhotoItem = ({ item }: { item: RestaurantPhoto }) => (
-    <TouchableOpacity
-      style={styles.photoContainer}
-      onPress={() => openPhotoModal(item)}
-    >
-      <Image
-        source={{ uri: item.url }}
-        style={styles.photo}
-        resizeMode="cover"
-      />
+    <TouchableOpacity style={styles.photoContainer} onPress={() => openPhotoModal(item)}>
+      <Image source={{ uri: item.url }} style={styles.photo} resizeMode="cover" />
     </TouchableOpacity>
   );
 
@@ -106,9 +191,7 @@ export default function ExploreScreen() {
       paddingVertical: spacing.sm,
       marginTop: spacing.sm,
     },
-    searchIcon: {
-      marginRight: spacing.sm,
-    },
+    searchIcon: { marginRight: spacing.sm },
     searchInput: {
       flex: 1,
       fontSize: typography.fontSize.md,
@@ -124,19 +207,14 @@ export default function ExploreScreen() {
       color: themeColors.textSecondary,
       marginTop: spacing.md,
     },
-    photosContainer: {
-      flexGrow: 1,
-    },
+    photosContainer: { flexGrow: 1 },
     photoContainer: {
       width: PHOTO_SIZE,
       height: PHOTO_SIZE,
       borderWidth: 0.5,
       borderColor: themeColors.textTertiary,
     },
-    photo: {
-      width: '100%',
-      height: '100%',
-    },
+    photo: { width: '100%', height: '100%' },
     emptyContainer: {
       flex: 1,
       justifyContent: 'center',
@@ -165,6 +243,9 @@ export default function ExploreScreen() {
       width: SCREEN_WIDTH,
       maxHeight: '90%',
       backgroundColor: themeColors.background,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      overflow: 'hidden',
     },
     modalHeader: {
       flexDirection: 'row',
@@ -174,22 +255,47 @@ export default function ExploreScreen() {
       paddingVertical: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: themeColors.textTertiary,
+      backgroundColor: themeColors.backgroundWhite,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
     },
     modalTitle: {
       fontSize: typography.fontSize.lg,
       fontWeight: typography.fontWeight.bold,
       color: themeColors.textPrimary,
     },
-    closeButton: {
-      padding: spacing.sm,
+    closeButton: { padding: spacing.sm },
+    imageWrapper: {
+      margin: spacing.lg,
+      borderRadius: 24,
+      overflow: 'hidden',
+      backgroundColor: themeColors.backgroundWhite,
+      borderWidth: 1,
+      borderColor: themeColors.textTertiary,
+      // subtle shadow for postcard feel
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
     },
-    modalImage: {
-      width: SCREEN_WIDTH,
-      height: SCREEN_WIDTH,
+    modalImage: { 
+      width: '100%', 
+      height: SCREEN_WIDTH * 0.7,
+      borderRadius: 20,
     },
-    modalDetails: {
-      padding: spacing.lg,
+    // Actions + details
+    actionBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
     },
+    actionLeft: { flexDirection: 'row', alignItems: 'center' },
+    actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.lg },
+    actionText: { marginLeft: spacing.xs, fontSize: typography.fontSize.md, color: themeColors.textPrimary },
+    modalDetails: { padding: spacing.lg },
     restaurantName: {
       fontSize: typography.fontSize.xl,
       fontWeight: typography.fontWeight.bold,
@@ -202,17 +308,36 @@ export default function ExploreScreen() {
       marginBottom: spacing.sm,
       fontWeight: typography.fontWeight.medium,
     },
-    addressText: {
-      fontSize: typography.fontSize.md,
-      color: themeColors.textPrimary,
-      marginBottom: spacing.md,
-      lineHeight: 20,
+    addressText: { fontSize: typography.fontSize.md, color: themeColors.textPrimary, marginBottom: spacing.md, lineHeight: 20 },
+    photoInfo: { fontSize: typography.fontSize.sm, color: themeColors.textSecondary, marginTop: spacing.md, fontStyle: 'italic' },
+    // Comments
+    commentsContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+    commentItem: { marginBottom: spacing.sm },
+    commentText: { fontSize: typography.fontSize.md, color: themeColors.textPrimary, lineHeight: 20 },
+    commentMeta: { fontSize: typography.fontSize.sm, color: themeColors.textSecondary, marginTop: spacing.xs },
+    commentInputRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: themeColors.textTertiary,
+      backgroundColor: themeColors.backgroundWhite,
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
     },
-    photoInfo: {
-      fontSize: typography.fontSize.sm,
-      color: themeColors.textSecondary,
-      marginTop: spacing.md,
-      fontStyle: 'italic',
+    commentInput: { 
+      flex: 1, 
+      fontSize: typography.fontSize.md, 
+      color: themeColors.textPrimary, 
+      marginRight: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      backgroundColor: themeColors.background,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: themeColors.borderLight,
+      minHeight: 40,
     },
   });
 
@@ -232,12 +357,7 @@ export default function ExploreScreen() {
       {/* Header with Search */}
       <View style={styles.header}>
         <View style={styles.searchContainer}>
-          <MaterialIcons
-            name="search"
-            size={20}
-            color={themeColors.textSecondary}
-            style={styles.searchIcon}
-          />
+          <MaterialIcons name="search" size={20} color={themeColors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search restaurants..."
@@ -252,14 +372,9 @@ export default function ExploreScreen() {
       {filteredPhotos.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialIcons name="photo-library" size={64} color={themeColors.textSecondary} />
-          <Text style={styles.emptyTitle}>
-            {searchQuery ? 'No photos found' : 'No photos available'}
-          </Text>
+          <Text style={styles.emptyTitle}>{searchQuery ? 'No photos found' : 'No photos available'}</Text>
           <Text style={styles.emptySubtitle}>
-            {searchQuery
-              ? 'Try searching for a different restaurant name'
-              : 'Restaurant photos will appear here when available'
-            }
+            {searchQuery ? 'Try searching for a different restaurant name' : 'Restaurant photos will appear here when available'}
           </Text>
         </View>
       ) : (
@@ -272,64 +387,128 @@ export default function ExploreScreen() {
           showsVerticalScrollIndicator={false}
           scrollEnabled={true}
           style={{ flex: 1 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={themeColors.textPrimary}
+              colors={[themeColors.textPrimary]}
+              title="Pull to refresh"
+              titleColor={themeColors.textSecondary}
+            />
+          }
         />
       )}
 
       {/* Photo Detail Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={closePhotoModal}
-      >
+      <Modal visible={modalVisible} animationType="fade" transparent onRequestClose={closePhotoModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Restaurant Photo</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={closePhotoModal}
-              >
+              <TouchableOpacity style={styles.closeButton} onPress={closePhotoModal}>
                 <MaterialIcons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Full Size Image */}
               {selectedPhoto && (
                 <>
-                  <Image
-                    source={{ uri: selectedPhoto.url }}
-                    style={styles.modalImage}
-                    resizeMode="cover"
-                  />
+                  <View style={styles.imageWrapper}>
+                    <Image source={{ uri: selectedPhoto.url }} style={styles.modalImage} resizeMode="cover" />
+                  </View>
 
-                  {/* Restaurant Details */}
+                  {/* Actions */}
+                  <View style={styles.actionBar}>
+                    <View style={styles.actionLeft}>
+                      <TouchableOpacity onPress={toggleLike} style={styles.actionButton} activeOpacity={1}>
+                        <Animated.View style={{ transform: [{ scale: likeAnimation }] }}>
+                          <MaterialIcons
+                            name={likedPhotos[selectedPhoto.id] ? 'favorite' : 'favorite-border'}
+                            size={24}
+                            color={likedPhotos[selectedPhoto.id] ? themeColors.secondary : themeColors.textPrimary}
+                          />
+                        </Animated.View>
+                        <Text style={styles.actionText}>{likesCount[selectedPhoto.id] ?? 0}</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity onPress={toggleSave} style={styles.actionButton} activeOpacity={1}>
+                        <Animated.View style={{ transform: [{ scale: saveAnimation }] }}>
+                          <MaterialIcons
+                            name={savedPhotos[selectedPhoto.id] ? 'bookmark' : 'bookmark-border'}
+                            size={24}
+                            color={savedPhotos[selectedPhoto.id] ? themeColors.secondary : themeColors.textPrimary}
+                          />
+                        </Animated.View>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.actionButton}>
+                      <MaterialIcons name="mode-comment" size={24} color={themeColors.textPrimary} />
+                      <Text style={styles.actionText}>{(photoComments[selectedPhoto.id] ?? []).length}</Text>
+                    </View>
+                  </View>
+
+                  {/* Details */}
                   <View style={styles.modalDetails}>
-                    <Text style={styles.restaurantName}>
-                      {selectedPhoto.restaurantName || 'Unknown Restaurant'}
-                    </Text>
+                    <Text style={styles.restaurantName}>{selectedPhoto.restaurantName || 'Unknown Restaurant'}</Text>
+                    {selectedPhoto.region && <Text style={styles.regionText}>{selectedPhoto.region}</Text>}
+                    {selectedPhoto.address && <Text style={styles.addressText}>📍 {selectedPhoto.address}</Text>}
+                    <Text style={styles.photoInfo}>Restaurant photo from our collection</Text>
+                  </View>
 
-                    {selectedPhoto.region && (
-                      <Text style={styles.regionText}>
-                        {selectedPhoto.region}
-                      </Text>
-                    )}
-
-                    {selectedPhoto.address && (
-                      <Text style={styles.addressText}>
-                        📍 {selectedPhoto.address}
-                      </Text>
-                    )}
-
-                    <Text style={styles.photoInfo}>
-                      Restaurant photo from our collection
-                    </Text>
+                  {/* Comments */}
+                  <View style={styles.commentsContainer}>
+                    {(photoComments[selectedPhoto.id] ?? []).map((c) => (
+                      <View key={c.id} style={styles.commentItem}>
+                        <Text style={styles.commentText}>{c.text}</Text>
+                        <Text style={styles.commentMeta}>{new Date(c.createdAt).toLocaleString()}</Text>
+                      </View>
+                    ))}
                   </View>
                 </>
               )}
             </ScrollView>
+
+            {/* Comment input */}
+            {selectedPhoto && (
+              <View style={styles.commentInputRow}>
+                <View style={[styles.commentInput, { flexDirection: 'row', alignItems: 'flex-start', paddingTop: spacing.sm }]}>
+                  <MaterialIcons name="account-circle" size={20} color={themeColors.textSecondary} style={{ marginRight: spacing.xs, marginTop: spacing.xs }} />
+                  <TextInput
+                    style={{ 
+                      flex: 1, 
+                      fontSize: typography.fontSize.md, 
+                      color: themeColors.textPrimary,
+                      textAlignVertical: 'top',
+                      paddingTop: spacing.xs,
+                    }}
+                    placeholder="Add a comment..."
+                    placeholderTextColor={themeColors.textSecondary}
+                    value={newComment}
+                    onChangeText={setNewComment}
+                    onSubmitEditing={addComment}
+                    returnKeyType="send"
+                    multiline
+                  />
+                </View>
+                <TouchableOpacity onPress={addComment} style={{
+                  backgroundColor: newComment.trim() ? themeColors.secondary : themeColors.borderLight,
+                  borderRadius: 20,
+                  padding: spacing.sm,
+                  marginLeft: spacing.xs,
+                  alignSelf: 'flex-start',
+                  marginTop: spacing.xs,
+                }}>
+                  <MaterialIcons 
+                    name="send" 
+                    size={20} 
+                    color={newComment.trim() ? '#ffffff' : themeColors.textSecondary} 
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>

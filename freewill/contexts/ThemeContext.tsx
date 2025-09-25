@@ -54,12 +54,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         setThemeModeState(mode);
         setActiveTheme(calculateActiveTheme(mode));
       } else {
-        // Default to system theme
-        setActiveTheme(getSystemTheme());
+        // Default to light theme
+        const mode = 'light' as ThemeMode;
+        setThemeModeState(mode);
+        setActiveTheme(calculateActiveTheme(mode));
       }
     } catch (error) {
       console.error('Error loading theme preference:', error);
-      setActiveTheme(getSystemTheme());
+      setActiveTheme('light');
     } finally {
       setLoading(false);
     }

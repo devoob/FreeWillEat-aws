@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'expo-router'
 import { useTheme } from '@/contexts/ThemeContext'
 import { MaterialIcons } from '@expo/vector-icons'
@@ -22,6 +22,13 @@ import { getColors, getComponentStyles, spacing, typography } from '@/styles/glo
 import { useAuth } from '@/contexts/UserContext'
 import { fetchRestaurants } from '@/services/restaurantService'
 import * as Location from 'expo-location'
+import Animated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withSpring, 
+  withRepeat, 
+  withTiming 
+} from 'react-native-reanimated'
 
 
 // Sample restaurant data
@@ -141,6 +148,10 @@ const Home = () => {
   const componentStyles = getComponentStyles(activeTheme);
   const { logout, user } = useAuth();
 
+  // Animation values
+  const likeButtonScale = useSharedValue(1);
+  const pulseAnimation = useSharedValue(1);
+
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedRestaurants, setLikedRestaurants] = useState<Restaurant[]>([]);
@@ -151,7 +162,23 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [distancesCalculated, setDistancesCalculated] = useState(false);
 
-  // Load restaurants and location on startup
+  // Start pulse animation on mount
+  useEffect(() => {
+    pulseAnimation.value = withRepeat(
+      withTiming(1.05, { duration: 2000 }),
+      -1,
+      true
+    );
+  }, []);
+
+  // Animation styles
+  const likeButtonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: likeButtonScale.value }],
+  }));
+
+  const pulseAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseAnimation.value }],
+  }));
   useEffect(() => {
     const initializeApp = async () => {
       try {
@@ -272,6 +299,17 @@ const Home = () => {
     setLikedRestaurants(newLikedRestaurants);
     setCurrentIndex(prev => prev + 1);
     
+    // Animate like button with Apple-style feedback
+    likeButtonScale.value = withSpring(0.95, { 
+      damping: 15, 
+      stiffness: 300 
+    }, () => {
+      likeButtonScale.value = withSpring(1, { 
+        damping: 15, 
+        stiffness: 300 
+      });
+    });
+    
     // Show liked screen after 5 likes
     if (newLikedRestaurants.length === 5) {
       setShowLikedScreen(true);
@@ -354,11 +392,37 @@ const Home = () => {
       </View>
 
 
-      {/* Floating Like Counter */}
+      {/* Modern Like Button */}
       <View style={styles.floatingControls}>
-        <Text style={[styles.likeCounter, { color: themeColors.secondary }]}>
-          ❤️ {likedRestaurants.length}
-        </Text>
+        {/* Pulse background for visual appeal */}
+        <Animated.View 
+          style={[
+            styles.pulseBackground, 
+            { backgroundColor: `${themeColors.secondary}20` },
+            pulseAnimatedStyle
+          ]} 
+        />
+        <Animated.View style={likeButtonAnimatedStyle}>
+          <TouchableOpacity 
+            style={[
+              styles.modernLikeButton, 
+              { backgroundColor: themeColors.secondary },
+              activeTheme === 'dark' && styles.darkModeButton
+            ]}
+            onPress={() => setShowLikedScreen(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.likeButtonContent}>
+              <MaterialIcons name="favorite" size={18} color="#ffffff" />
+              <Text style={styles.likeButtonText}>{likedRestaurants.length}</Text>
+            </View>
+            {likedRestaurants.length > 0 && (
+              <View style={[styles.likeButtonBadge, { backgroundColor: '#ff4757' }]}>
+                <Text style={styles.badgeText}>!</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
       </View>
 
       {/* Debug Logout Button */}
@@ -439,21 +503,72 @@ const styles = StyleSheet.create({
   floatingControls: {
     position: 'absolute',
     top: 60,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    left: spacing.xl,
     zIndex: 1000,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  likeCounter: {
-    fontSize: typography.fontSize.xl,
+  pulseBackground: {
+    position: 'absolute',
+    width: 94,
+    height: 54,
+    borderRadius: 27,
+    opacity: 0.15,
+  },
+  modernLikeButton: {
+    position: 'relative',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minWidth: 80,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  darkModeButton: {
+    borderColor: 'rgba(255,255,255,0.1)',
+    shadowOpacity: 0.4,
+  },
+  likeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  likeButtonText: {
+    color: '#ffffff',
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    letterSpacing: 0.5,
+  },
+  likeButtonBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
   },
   resetButton: {
     padding: spacing.md,
