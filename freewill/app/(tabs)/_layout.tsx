@@ -4,6 +4,8 @@ import { Tabs } from 'expo-router';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/styles/globalStyles';
+import { BlurView } from 'expo-blur';
+import { Platform } from 'react-native';
 
 
 export default function Layout() {
@@ -48,7 +50,11 @@ export default function Layout() {
         tabBarActiveTintColor: themeColors.secondary,
         tabBarInactiveTintColor: themeColors.textTertiary,
         tabBarStyle: {
-          backgroundColor: themeColors.backgroundWhite,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: 'transparent',
           borderTopWidth: 0,
           paddingBottom: 8,
           paddingTop: 8,
@@ -57,6 +63,25 @@ export default function Layout() {
           elevation: 0,
           shadowOpacity: 0,
         },
+        tabBarBackground: () => (
+          <BlurView
+            intensity={Platform.OS === 'ios' ? 100 : 80}
+            tint={activeTheme === 'dark' ? 'dark' : 'light'}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              right: 0,
+              backgroundColor: activeTheme === 'dark'
+                ? 'rgba(0, 0, 0, 0.8)'
+                : 'rgba(255, 255, 255, 0.8)',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              overflow: 'hidden',
+            }}
+          />
+        ),
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',

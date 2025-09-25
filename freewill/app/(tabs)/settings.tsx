@@ -24,7 +24,7 @@ interface MealPreference {
 }
 
 const Settings = () => {
-  const { activeTheme, toggleTheme } = useTheme();
+  const { activeTheme, setThemeMode } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
   const themeColors = getColors(activeTheme);
@@ -39,6 +39,9 @@ const Settings = () => {
     { id: 'spicy', name: 'Spicy Food', icon: 'local-fire-department', enabled: true },
     { id: 'seafood', name: 'Seafood', icon: 'set-meal', enabled: true },
   ]);
+
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [locationServices, setLocationServices] = useState(true);
 
   const togglePreference = (id: string) => {
     setMealPreferences(prev =>
@@ -178,7 +181,7 @@ const Settings = () => {
             </View>
             <Switch
               value={activeTheme === 'dark'}
-              onValueChange={toggleTheme}
+              onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
               trackColor={{ false: themeColors.border, true: `${themeColors.secondary}50` }}
               thumbColor={activeTheme === 'dark' ? themeColors.secondary : '#f4f3f4'}
             />
@@ -192,9 +195,10 @@ const Settings = () => {
               </Text>
             </View>
             <Switch
-              value={true}
+              value={pushNotifications}
+              onValueChange={setPushNotifications}
               trackColor={{ false: themeColors.border, true: `${themeColors.secondary}50` }}
-              thumbColor={themeColors.secondary}
+              thumbColor={pushNotifications ? themeColors.secondary : '#f4f3f4'}
             />
           </TouchableOpacity>
 
@@ -206,9 +210,10 @@ const Settings = () => {
               </Text>
             </View>
             <Switch
-              value={true}
+              value={locationServices}
+              onValueChange={setLocationServices}
               trackColor={{ false: themeColors.border, true: `${themeColors.secondary}50` }}
-              thumbColor={themeColors.secondary}
+              thumbColor={locationServices ? themeColors.secondary : '#f4f3f4'}
             />
           </TouchableOpacity>
         </View>
