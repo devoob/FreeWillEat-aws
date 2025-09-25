@@ -27,6 +27,15 @@ const UserSchema = new mongoose.Schema({
   fullName: {
     type: String,
   },
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 30,
+    match: /^[a-zA-Z0-9_]+$/,
+  },
   authProvider: {
     type: String,
     enum: ['local', 'apple'],

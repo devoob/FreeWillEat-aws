@@ -80,6 +80,34 @@ export const fetchRestaurantPhotos = async (): Promise<RestaurantPhoto[]> => {
   }
 };
 
+export const fetchRestaurantAdditionalPhotos = async (restaurantId: string): Promise<{ photos: string[], likesCount: number, dislikesCount: number }> => {
+  try {
+    const response = await api.get(`/restaurants/${restaurantId}`);
+    const restaurant = response.data.data;
+
+    const allPhotos: string[] = [];
+
+    // Add all photos that exist (photo1 through photo5)
+    [restaurant.photo1, restaurant.photo2, restaurant.photo3, restaurant.photo4, restaurant.photo5]
+      .forEach(photo => {
+        if (photo && photo.trim()) {
+          allPhotos.push(photo);
+        }
+      });
+
+    console.log(`Fetched ${allPhotos.length} photos for restaurant ${restaurantId}`);
+
+    return {
+      photos: allPhotos,
+      likesCount: restaurant.like || 0,
+      dislikesCount: restaurant.dislike || 0
+    };
+  } catch (error) {
+    console.error('Error fetching restaurant additional photos:', error);
+    throw error;
+  }
+};
+
 export const getAiRestaurantSuggestion = async (message: string): Promise<string> => {
   try {
     const response = await api.post('/restaurants/ai-suggestion', { message });

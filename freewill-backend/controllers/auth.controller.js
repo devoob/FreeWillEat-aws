@@ -259,4 +259,71 @@ const getApiUsage = async (req, res) => {
   }
 };
 
-export { register, login, logout, getUser, appleLogin, linkAccount, getApiUsage };
+// Update user profile
+const updateProfile = async (req, res) => {
+  try {
+    const { fullName, username } = req.body;
+    const userId = req.user.id;
+
+    // Check if username is provided and if it's already taken by another user
+    if (username) {
+      const existingUser = await User.findOne({
+        username: username.trim(),
+        _id: { $ne: userId }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username is already taken'
+        });
+      }
+
+      // Validate username format
+      if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username can only contain letters, numbers, and underscores'
+        });
+      }
+
+      if (username.trim().length < 3 || username.trim().length > 30) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username must be between 3 and 30 characters'
+        });
+      }
+    }
+
+    const updateData = {};
+    if (fullName !== undefined) updateData.fullName = fullName.trim();
+    if (username !== undefined) updateData.username = username.trim();
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error updating profile'
+    });
+  }
+};
+
+export { register, login, logout, getUser, appleLogin, linkAccount, getApiUsage, updateProfile };

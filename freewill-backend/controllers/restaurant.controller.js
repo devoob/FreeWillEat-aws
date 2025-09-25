@@ -83,10 +83,50 @@ export const getRestaurantPhotos = async (req, res) => {
   }
 };
 
-const getRecommendedRestaurants = async (userLocation) => {
-  const longitude = userLocation.longitude;
-  const langitude = userLocaltion.langitude;
+export const getRestaurantById = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-  // ...
+    // Validate the restaurant ID format
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid restaurant ID format'
+      });
+    }
 
-}
+    const restaurant = await Restaurant.findById(id);
+
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Restaurant not found'
+      });
+    }
+
+    console.log('Found restaurant by ID:', {
+      id: restaurant._id,
+      name: restaurant.restaurant_name,
+      photos: {
+        photo1: !!restaurant.photo1,
+        photo2: !!restaurant.photo2,
+        photo3: !!restaurant.photo3,
+        photo4: !!restaurant.photo4,
+        photo5: !!restaurant.photo5,
+      },
+      likes: restaurant.like,
+      dislikes: restaurant.dislike
+    });
+
+    res.status(200).json({
+      success: true,
+      data: restaurant
+    });
+  } catch (error) {
+    console.error('Error fetching restaurant by ID:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch restaurant'
+    });
+  }
+};

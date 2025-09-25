@@ -26,11 +26,33 @@ const RestaurantSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  photo4: {
+    type: String,
+    required: false,
+  },
+  photo5: {
+    type: String,
+    required: false,
+  },
   region: {
     type: String,
     required: false,
   },
   restaurant_name: {
+    type: String,
+    required: false,
+  },
+  like: {
+    type: Number,
+    required: false,
+    default: 0
+  },
+  dislike: {
+    type: Number,
+    required: false,
+    default: 0
+  },
+  link: {
     type: String,
     required: false,
   },

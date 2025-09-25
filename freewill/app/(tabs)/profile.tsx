@@ -7,6 +7,8 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -14,6 +16,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/UserContext';
 import SafeScreenContainer from '@/components/ui/SafeScreenContainer';
 import { getColors, spacing, typography, borderRadius, shadows } from '@/styles/globalStyles';
+import api from '@/services/apiClient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -28,9 +31,36 @@ interface ProfileMenuItem {
 
 const Profile = () => {
   const { activeTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, setUser } = useAuth();
   const router = useRouter();
   const themeColors = getColors(activeTheme);
+
+  // Username editing state
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [tempUsername, setTempUsername] = useState('');
+
+  const handleUsernameEdit = () => {
+    setTempUsername(user?.username || '');
+    setIsEditingUsername(true);
+  };
+
+  const handleUsernameSubmit = async () => {
+    if (!tempUsername.trim()) return;
+
+    try {
+      const response = await api.put('/auth/profile', { username: tempUsername.trim() });
+      setUser(response.data.user);
+      setIsEditingUsername(false);
+      Alert.alert('Success', 'Username updated!');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update username');
+    }
+  };
+
+  const handleUsernameCancel = () => {
+    setIsEditingUsername(false);
+    setTempUsername('');
+  };
 
   const profileMenuItems: ProfileMenuItem[] = [
     {
@@ -101,9 +131,29 @@ const Profile = () => {
                 </Text>
               </View>
               <View style={styles.profileInfo}>
-                <Text style={[styles.profileName, { color: themeColors.textPrimary }]}>
-                  {user?.fullName || 'User'}
-                </Text>
+                <View style={styles.usernameContainer}>
+                  {isEditingUsername ? (
+                    <View style={styles.usernameEditContainer}>
+                      <TextInput
+                        style={[styles.usernameInput, { color: themeColors.textPrimary, borderColor: themeColors.borderLight }]}
+                        value={tempUsername}
+                        onChangeText={setTempUsername}
+                        autoFocus
+                        onSubmitEditing={handleUsernameSubmit}
+                        onBlur={handleUsernameCancel}
+                      />
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={[styles.profileName, { color: themeColors.textPrimary }]}>
+                        {user?.username || 'Username'}
+                      </Text>
+                      <TouchableOpacity onPress={handleUsernameEdit} style={styles.editUsernameButton}>
+                        <MaterialIcons name="edit" size={16} color="#FF8C00" />
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
                 <View style={styles.levelContainer}>
                   <Text style={[styles.levelText, { color: themeColors.textSecondary }]}>
                     Level 1
@@ -117,20 +167,9 @@ const Profile = () => {
             
             <View style={styles.profileRight}>
               <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: themeColors.textPrimary }]}>0</Text>
-                  <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Followers</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: themeColors.textPrimary }]}>0</Text>
-                  <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Following</Text>
-                </View>
+              
               </View>
-              <TouchableOpacity style={[styles.editButton, { borderColor: themeColors.border }]}>
-                <Text style={[styles.editButtonText, { color: themeColors.textSecondary }]}>
-                  Edit Profile
-                </Text>
-              </TouchableOpacity>
+              
             </View>
           </View>
         </View>
@@ -199,8 +238,8 @@ const Profile = () => {
 
         {/* Close Account Button */}
         <View style={styles.bottomSection}>
-          <TouchableOpacity 
-            style={[styles.closeAccountButton, { borderColor: themeColors.border }]}
+          <TouchableOpacity
+            style={[styles.closeAccountButton, { borderColor: themeColors.borderLight }]}
             onPress={() => {
               // Handle close account
             }}
@@ -211,6 +250,7 @@ const Profile = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
     </SafeScreenContainer>
   );
 };
@@ -402,6 +442,34 @@ const styles = StyleSheet.create({
   },
   closeAccountText: {
     fontSize: 14,
+  },
+  // Username editing styles
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  usernameText: {
+    fontSize: 14,
+    marginRight: spacing.xs,
+  },
+  editUsernameButton: {
+    padding: spacing.xs,
+  },
+  usernameEditContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  usernamePrefix: {
+    fontSize: 14,
+    marginRight: 2,
+  },
+  usernameInput: {
+    fontSize: 14,
+    borderBottomWidth: 1,
+    paddingVertical: 2,
+    paddingHorizontal: spacing.xs,
+    minWidth: 100,
   },
 });
 

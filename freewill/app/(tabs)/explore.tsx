@@ -18,7 +18,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, spacing, typography, borderRadius } from '@/styles/globalStyles';
-import { fetchRestaurantPhotos, RestaurantPhoto } from '@/services/restaurantService';
+import { fetchRestaurantPhotos, fetchRestaurantAdditionalPhotos, RestaurantPhoto } from '@/services/restaurantService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_SIZE = SCREEN_WIDTH / 3; // 3 columns
@@ -42,6 +42,12 @@ export default function ExploreScreen() {
   const [likesCount, setLikesCount] = useState<Record<string, number>>({});
   const [photoComments, setPhotoComments] = useState<Record<string, { id: string; text: string; createdAt: number }[]>>({});
   const [newComment, setNewComment] = useState('');
+
+  // Gallery state
+  const [additionalPhotos, setAdditionalPhotos] = useState<string[]>([]);
+  const [loadingAdditionalPhotos, setLoadingAdditionalPhotos] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [realLikesCount, setRealLikesCount] = useState<number>(0);
 
   // Animation values
   const [likeAnimation] = useState(new Animated.Value(1));
@@ -86,21 +92,54 @@ export default function ExploreScreen() {
   }, [searchQuery, photos]);
 
   // Modal handlers
-  const openPhotoModal = (photo: RestaurantPhoto) => {
+  const openPhotoModal = async (photo: RestaurantPhoto) => {
     setSelectedPhoto(photo);
     setModalVisible(true);
-    // Initialize local counts/comments once
-    setLikesCount((prev) => ({
-      ...prev,
-      [photo.id]: prev[photo.id] ?? Math.floor(Math.random() * 50),
-    }));
+    setCurrentPhotoIndex(0);
+    setAdditionalPhotos([]);
+    setRealLikesCount(0);
+
+    // Initialize local comments
     setPhotoComments((prev) => ({ ...prev, [photo.id]: prev[photo.id] ?? [] }));
+
+    // Fetch additional photos and real likes count
+    setLoadingAdditionalPhotos(true);
+    try {
+      const { photos, likesCount } = await fetchRestaurantAdditionalPhotos(photo.restaurantId);
+      setAdditionalPhotos(photos);
+      setRealLikesCount(likesCount);
+      console.log(`Loaded ${photos.length} photos for restaurant ${photo.restaurantId}, likes: ${likesCount}`);
+    } catch (error) {
+      console.error('Error loading additional photos:', error);
+      // Continue with just the main photo
+      setAdditionalPhotos([photo.url]);
+    } finally {
+      setLoadingAdditionalPhotos(false);
+    }
   };
 
   const closePhotoModal = () => {
     setModalVisible(false);
     setSelectedPhoto(null);
     setNewComment('');
+    setAdditionalPhotos([]);
+    setCurrentPhotoIndex(0);
+    setRealLikesCount(0);
+  };
+
+  // Handle photo gallery scroll
+  const handlePhotoScroll = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / SCREEN_WIDTH);
+    setCurrentPhotoIndex(index);
+  };
+
+  // Get all photos for display
+  const getAllPhotos = () => {
+    if (additionalPhotos.length > 0) {
+      return additionalPhotos;
+    }
+    return selectedPhoto ? [selectedPhoto.url] : [];
   };
 
   // Interactions
@@ -326,10 +365,10 @@ export default function ExploreScreen() {
       borderBottomLeftRadius: 24,
       borderBottomRightRadius: 24,
     },
-    commentInput: { 
-      flex: 1, 
-      fontSize: typography.fontSize.md, 
-      color: themeColors.textPrimary, 
+    commentInput: {
+      flex: 1,
+      fontSize: typography.fontSize.md,
+      color: themeColors.textPrimary,
       marginRight: spacing.md,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.md,
@@ -338,6 +377,66 @@ export default function ExploreScreen() {
       borderWidth: 1,
       borderColor: themeColors.borderLight,
       minHeight: 40,
+    },
+    // Instagram-style gallery
+    galleryContainer: {
+      margin: spacing.lg,
+      borderRadius: 24,
+      overflow: 'hidden',
+      backgroundColor: themeColors.backgroundWhite,
+      borderWidth: 1,
+      borderColor: themeColors.textTertiary,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    photoGallery: {
+      height: SCREEN_WIDTH * 0.7,
+    },
+    loadingImageContainer: {
+      width: SCREEN_WIDTH - (spacing.lg * 2),
+      height: SCREEN_WIDTH * 0.7,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: themeColors.background,
+    },
+    photoCounter: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.md,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: 12,
+    },
+    photoCounterText: {
+      color: '#ffffff',
+      fontSize: typography.fontSize.sm,
+      fontWeight: typography.fontWeight.medium,
+    },
+    paginationContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      paddingVertical: spacing.sm,
+    },
+    paginationDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginHorizontal: 2,
+    },
+    galleryImageContainer: {
+      width: SCREEN_WIDTH - (spacing.lg * 2),
+      height: SCREEN_WIDTH * 0.7,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    galleryImage: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 20,
     },
   });
 
@@ -415,9 +514,64 @@ export default function ExploreScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {selectedPhoto && (
                 <>
-                  <View style={styles.imageWrapper}>
-                    <Image source={{ uri: selectedPhoto.url }} style={styles.modalImage} resizeMode="cover" />
+                  {/* Instagram-style Photo Gallery */}
+                  <View style={styles.galleryContainer}>
+                    {loadingAdditionalPhotos ? (
+                      <View style={[styles.imageWrapper, styles.loadingImageContainer]}>
+                        <ActivityIndicator size="large" color={themeColors.secondary} />
+                        <Text style={[styles.loadingText, { color: themeColors.textSecondary, marginTop: spacing.md }]}>
+                          Loading photos...
+                        </Text>
+                      </View>
+                    ) : (
+                      <ScrollView
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        onScroll={handlePhotoScroll}
+                        scrollEventThrottle={16}
+                        style={styles.photoGallery}
+                      >
+                        {getAllPhotos().map((photoUrl, index) => (
+                          <View key={index} style={styles.galleryImageContainer}>
+                            <Image
+                              source={{ uri: photoUrl }}
+                              style={styles.galleryImage}
+                              resizeMode="cover"
+                            />
+                          </View>
+                        ))}
+                      </ScrollView>
+                    )}
+
+                    {/* Photo counter */}
+                    {getAllPhotos().length > 1 && (
+                      <View style={styles.photoCounter}>
+                        <Text style={styles.photoCounterText}>
+                          {currentPhotoIndex + 1} / {getAllPhotos().length}
+                        </Text>
+                      </View>
+                    )}
                   </View>
+
+                  {/* Pagination dots - Outside gallery container */}
+                  {getAllPhotos().length > 1 && (
+                    <View style={styles.paginationContainer}>
+                      {getAllPhotos().map((_, index) => (
+                        <View
+                          key={index}
+                          style={[
+                            styles.paginationDot,
+                            {
+                              backgroundColor: index === currentPhotoIndex
+                                ? themeColors.secondary
+                                : themeColors.textTertiary
+                            }
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  )}
 
                   {/* Actions */}
                   <View style={styles.actionBar}>
@@ -430,7 +584,7 @@ export default function ExploreScreen() {
                             color={likedPhotos[selectedPhoto.id] ? themeColors.secondary : themeColors.textPrimary}
                           />
                         </Animated.View>
-                        <Text style={styles.actionText}>{likesCount[selectedPhoto.id] ?? 0}</Text>
+                        <Text style={styles.actionText}>{realLikesCount}</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity onPress={toggleSave} style={styles.actionButton} activeOpacity={1}>
