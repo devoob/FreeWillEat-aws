@@ -32,33 +32,27 @@ export const getRestaurantPhotos = async (req, res) => {
   try {
     const restaurants = await Restaurant.find();
 
-    // Extract all photos from restaurants
+    // Extract only one photo per restaurant (prefer photo1, fallback to photo2, then photo3)
     const photos = [];
     restaurants.forEach(restaurant => {
+      let photoUrl = null;
+      let photoId = null;
+
       if (restaurant.photo1) {
-        photos.push({
-          id: `${restaurant._id}_1`,
-          url: restaurant.photo1,
-          restaurantId: restaurant._id,
-          restaurantName: restaurant.restaurant_name,
-          address: restaurant.details,
-          region: restaurant.region
-        });
+        photoUrl = restaurant.photo1;
+        photoId = `${restaurant._id}_1`;
+      } else if (restaurant.photo2) {
+        photoUrl = restaurant.photo2;
+        photoId = `${restaurant._id}_2`;
+      } else if (restaurant.photo3) {
+        photoUrl = restaurant.photo3;
+        photoId = `${restaurant._id}_3`;
       }
-      if (restaurant.photo2) {
+
+      if (photoUrl) {
         photos.push({
-          id: `${restaurant._id}_2`,
-          url: restaurant.photo2,
-          restaurantId: restaurant._id,
-          restaurantName: restaurant.restaurant_name,
-          address: restaurant.details,
-          region: restaurant.region
-        });
-      }
-      if (restaurant.photo3) {
-        photos.push({
-          id: `${restaurant._id}_3`,
-          url: restaurant.photo3,
+          id: photoId,
+          url: photoUrl,
           restaurantId: restaurant._id,
           restaurantName: restaurant.restaurant_name,
           address: restaurant.details,
