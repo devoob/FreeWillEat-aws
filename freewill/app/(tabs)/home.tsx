@@ -20,7 +20,7 @@ import SafeScreenContainer from '@/components/ui/SafeScreenContainer'
 import SwipeCard, { Restaurant } from '@/components/ui/SwipeCard'
 import { getColors, getComponentStyles, spacing, typography } from '@/styles/globalStyles'
 import { useAuth } from '@/contexts/UserContext'
-import { fetchRestaurants } from '@/services/restaurantService'
+import { fetchRestaurants, fetchRecommendedRestaurants } from '@/services/restaurantService'
 import * as Location from 'expo-location'
 import Animated, { 
   useAnimatedStyle, 
@@ -125,8 +125,6 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   const restLat = Number(lat2);
   const restLon = Number(lon2);
 
-  console.log('Calculating distance between:', { userLat, userLon, restLat, restLon });
-
   const R = 6371; // Earth's radius in kilometers
   const dLat = (restLat - userLat) * Math.PI / 180;
   const dLon = (restLon - userLon) * Math.PI / 180;
@@ -136,8 +134,6 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
     Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   const distance = R * c;
-
-  console.log('Calculated distance:', distance);
   return distance;
 };
 
@@ -182,23 +178,28 @@ const Home = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        let currentUserLocation = null;
+        let hasLocationPermission = false;
+
         // Request location permission
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
+          hasLocationPermission = true;
           setLocationPermission(true);
           try {
             const location = await Location.getCurrentPositionAsync({});
-            setUserLocation({
+            currentUserLocation = {
               latitude: location.coords.latitude,
               longitude: location.coords.longitude
-            });
+            };
+            setUserLocation(currentUserLocation);
           } catch (locError) {
-            console.log('Error getting location:', locError);
             // Fallback to Hong Kong location if GPS fails
-            setUserLocation({
+            currentUserLocation = {
               latitude: 22.3193,
               longitude: 114.1694
-            });
+            };
+            setUserLocation(currentUserLocation);
           }
         } else {
           Alert.alert(
@@ -208,41 +209,46 @@ const Home = () => {
           );
         }
 
-        // Fetch restaurants from database
-        const fetchedRestaurants = await fetchRestaurants();
+        // Fetch recommended restaurants from database if location is available
+        let fetchedRestaurants;
+        if (hasLocationPermission && currentUserLocation) {
+          try {
+            fetchedRestaurants = await fetchRecommendedRestaurants(currentUserLocation.latitude, currentUserLocation.longitude);
+          } catch (error) {
+            console.error('Failed to fetch recommended restaurants, falling back to all restaurants:', error);
+            fetchedRestaurants = await fetchRestaurants();
+          }
+        } else {
+          fetchedRestaurants = await fetchRestaurants();
+        }
 
         // Set restaurants first, distances will be calculated in the useEffect
         setRestaurants(fetchedRestaurants);
 
         // Prefetch first 10 images immediately, then continue with the rest
-        console.log('Starting to prefetch restaurant images...');
         const firstBatch = fetchedRestaurants.slice(0, 10);
         const remainingBatch = fetchedRestaurants.slice(10);
 
         // Prefetch first 10 images
         const firstBatchPromises = firstBatch.map(restaurant =>
-          Image.prefetch(restaurant.image).catch((error) => {
-            console.log(`Failed to prefetch image for ${restaurant.name}:`, error);
+          Image.prefetch(restaurant.image).catch(() => {
+            // Silently handle prefetch failures
           })
         );
 
         await Promise.all(firstBatchPromises);
-        console.log('First 10 images prefetched successfully');
         setImagesPrefetched(true);
 
         // Continue prefetching remaining images in background
         if (remainingBatch.length > 0) {
-          console.log(`Continuing to prefetch ${remainingBatch.length} more images in background...`);
           const remainingPromises = remainingBatch.map(restaurant =>
-            Image.prefetch(restaurant.image).catch((error) => {
-              console.log(`Failed to prefetch image for ${restaurant.name}:`, error);
+            Image.prefetch(restaurant.image).catch(() => {
+              // Silently handle prefetch failures
             })
           );
 
-          Promise.all(remainingPromises).then(() => {
-            console.log('All remaining images prefetched successfully');
-          }).catch(() => {
-            console.log('Some remaining images failed to prefetch, but continuing anyway');
+          Promise.all(remainingPromises).catch(() => {
+            // Silently handle batch prefetch failures
           });
         }
       } catch (error) {
@@ -262,23 +268,17 @@ const Home = () => {
   // Calculate distances when both location and restaurants are available
   useEffect(() => {
     if (userLocation && restaurants.length > 0 && !distancesCalculated) {
-      console.log('Calculating distances for restaurants');
-      console.log('User location:', userLocation);
-      console.log('Restaurants count:', restaurants.length);
 
       const restaurantsWithDistance = restaurants.map(restaurant => {
         if (restaurant.lat && restaurant.lng) {
-          console.log(`Restaurant ${restaurant.name}:`, { lat: restaurant.lat, lng: restaurant.lng });
           const distance = calculateDistance(
             userLocation.latitude,
             userLocation.longitude,
             restaurant.lat,
             restaurant.lng
           );
-          console.log(`Distance to ${restaurant.name}:`, distance);
           return { ...restaurant, distance: Math.round(distance * 10) / 10 };
         } else {
-          console.log(`Restaurant ${restaurant.name} has no coordinates`);
           return restaurant;
         }
       });
@@ -289,14 +289,12 @@ const Home = () => {
   }, [userLocation, restaurants.length, distancesCalculated]);
 
   const handleSwipeLeft = (restaurant: Restaurant) => {
-    console.log('Disliked:', restaurant.name);
     setCurrentIndex(prev => prev + 1);
   };
 
   const LIKED_THRESHOLD = 5;
 
   const handleSwipeRight = (restaurant: Restaurant) => {
-    console.log('Liked:', restaurant.name);
     const newLikedRestaurants = [...likedRestaurants, restaurant];
     setLikedRestaurants(newLikedRestaurants);
     setCurrentIndex(prev => prev + 1);
@@ -406,6 +404,7 @@ const Home = () => {
                 onSwipeLeft={handleSwipeLeft}
                 onSwipeRight={handleSwipeRight}
                 isTop={false}
+                hideWhenLoading={true}
               />
             )}
             

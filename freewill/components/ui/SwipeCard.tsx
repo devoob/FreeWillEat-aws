@@ -33,6 +33,7 @@ export interface Restaurant {
   address: string;
   image: string;
   rating?: number;
+  likes?: number;
   lat?: number;
   lng?: number;
   distance?: number;
@@ -43,6 +44,7 @@ interface SwipeCardProps {
   onSwipeLeft: (restaurant: Restaurant) => void;
   onSwipeRight: (restaurant: Restaurant) => void;
   isTop?: boolean;
+  hideWhenLoading?: boolean;
 }
 
 const SwipeCard: React.FC<SwipeCardProps> = ({
@@ -50,6 +52,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
   onSwipeLeft,
   onSwipeRight,
   isTop = false,
+  hideWhenLoading = false,
 }) => {
   const { activeTheme } = useTheme();
   const themeColors = getColors(activeTheme);
@@ -138,8 +141,11 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
     return { opacity };
   });
 
-  // Show loading state until image is loaded
+  // Show loading state until image is loaded, or hide completely if hideWhenLoading is true
   if (!imageLoaded) {
+    if (hideWhenLoading) {
+      return null; // Hide the card completely during loading
+    }
     return (
       <Reanimated.View style={[styles.card, animatedStyle]}>
         <View style={styles.loadingContainer}>
@@ -168,10 +174,10 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
                   <Text style={styles.restaurantType}>{restaurant.type}</Text>
                   <Text style={styles.restaurantAddress}>{restaurant.address}</Text>
                   <View style={styles.metaContainer}>
-                    {restaurant.rating && (
+                    {typeof restaurant.likes === 'number' && (
                       <View style={styles.ratingContainer}>
-                        <MaterialIcons name="star" size={16} color={themeColors.secondary} />
-                        <Text style={styles.ratingText}>{restaurant.rating.toFixed(1)}</Text>
+                        <MaterialIcons name="favorite" size={16} color={themeColors.secondary} />
+                        <Text style={styles.ratingText}>{restaurant.likes}</Text>
                       </View>
                     )}
                     <View style={styles.distanceContainer}>
@@ -201,10 +207,10 @@ const SwipeCard: React.FC<SwipeCardProps> = ({
                   <Text style={styles.restaurantType}>{restaurant.type}</Text>
                   <Text style={styles.restaurantAddress}>{restaurant.address}</Text>
                   <View style={styles.metaContainer}>
-                    {restaurant.rating && (
+                    {typeof restaurant.likes === 'number' && (
                       <View style={styles.ratingContainer}>
-                        <MaterialIcons name="star" size={16} color={themeColors.secondary} />
-                        <Text style={styles.ratingText}>{restaurant.rating.toFixed(1)}</Text>
+                        <MaterialIcons name="favorite" size={16} color={themeColors.secondary} />
+                        <Text style={styles.ratingText}>{restaurant.likes}</Text>
                       </View>
                     )}
                     <View style={styles.distanceContainer}>

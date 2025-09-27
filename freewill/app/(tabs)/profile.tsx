@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Text,
   View,
@@ -32,9 +32,9 @@ interface ProfileMenuItem {
 
 const Profile = () => {
   const { activeTheme } = useTheme();
-  const { user, logout, savedRestaurants } = useAuth();
+  const { user, logout, savedRestaurants, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [draftName, setDraftName] = useState((user?.fullName || 'User').substring(0, 7));
+  const [draftUsername, setDraftUsername] = useState(user?.username || 'User');
   const [location, setLocation] = useState('Hong Kong');
   const [bio, setBio] = useState('Food lover • Exploring tasty spots');
   // Removed tab switching – only showing Saved section statically
@@ -101,8 +101,25 @@ const Profile = () => {
     // Handle navigation to different sections
   };
 
+  const handleSaveProfile = async () => {
+    try {
+      await updateUser({ username: draftUsername });
+      setEditing(false);
+    } catch (error) {
+      console.error('Failed to update username:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+
+  // Update draftUsername when user data changes
+  useEffect(() => {
+    if (user?.username) {
+      setDraftUsername(user.username);
+    }
+  }, [user?.username]);
+
   return (
-  <SafeScreenContainer style={[{ backgroundColor: themeColors.backgroundWhite }, styles.container]}>
+    <SafeScreenContainer style={[{ backgroundColor: themeColors.backgroundWhite, alignItems: 'stretch' }, styles.container]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xl, minHeight: '100%' }}>
         {/* Profile Header (Enhanced) */}
         <View style={[styles.profileHeader, { backgroundColor: themeColors.backgroundWhite, borderBottomColor: themeColors.borderLight, borderBottomWidth: StyleSheet.hairlineWidth }]}>          
@@ -132,8 +149,13 @@ const Profile = () => {
           </View>
 
           {/* Name / Level / Location */}
-          <View style={styles.metaSection}>            
-            <Text style={[styles.profileName, { color: themeColors.textPrimary }]} numberOfLines={1}>{draftName}</Text>
+          <View style={styles.metaSection}>
+            <View style={styles.usernameRow}>
+              <Text style={[styles.profileName, { color: themeColors.textPrimary }]} numberOfLines={1}>{draftUsername}</Text>
+              <TouchableOpacity style={styles.editUsernameButton} onPress={() => setEditing(true)}>
+                <MaterialIcons name="edit" size={18} color="#FF8C00" />
+              </TouchableOpacity>
+            </View>
             <View style={styles.metaRow}>
               <View style={[styles.levelBadge, { backgroundColor: themeColors.secondary + '22', borderColor: themeColors.secondary }]}>                
                 <Text style={[styles.levelBadgeText, { color: themeColors.secondary }]}>Lv {level}</Text>
@@ -287,16 +309,13 @@ const Profile = () => {
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>Edit Profile</Text>
               <View style={styles.modalField}>
-                <Text style={[styles.modalLabel, { color: themeColors.textSecondary }]}>Name (max 7 letters)</Text>
-                <TextInput 
-                  value={draftName} 
-                  onChangeText={(text) => {
-                    if (text.length <= 7) setDraftName(text);
-                  }} 
-                  style={[styles.modalInput, { borderColor: (themeColors as any).border || themeColors.textSecondary, color: themeColors.textPrimary }]} 
-                  placeholder="Name" 
+                <Text style={[styles.modalLabel, { color: themeColors.textSecondary }]}>Username</Text>
+                <TextInput
+                  value={draftUsername}
+                  onChangeText={setDraftUsername} 
+                  style={[styles.modalInput, { borderColor: (themeColors as any).border || themeColors.textSecondary, color: themeColors.textPrimary }]}
+                  placeholder="Username"
                   placeholderTextColor={themeColors.textSecondary}
-                  maxLength={7}
                   returnKeyType="next"
                 />
               </View>
@@ -326,7 +345,7 @@ const Profile = () => {
                 <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setEditing(false)}>
                   <Text style={styles.modalButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.modalButton, { backgroundColor: themeColors.secondary }]} onPress={() => setEditing(false)}>
+                <TouchableOpacity style={[styles.modalButton, { backgroundColor: themeColors.secondary }]} onPress={handleSaveProfile}>
                   <Text style={[styles.modalButtonText, { color: '#fff' }]}>Save</Text>
                 </TouchableOpacity>
               </View>
@@ -341,6 +360,7 @@ const Profile = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
   },
   profileHeader: {
     paddingHorizontal: spacing.lg,
@@ -364,6 +384,8 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   profileName: { fontSize: 22, fontWeight: '700' },
+  usernameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  editUsernameButton: { padding: spacing.xs, borderRadius: 4 },
   metaSection: { marginBottom: spacing.md },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xs },
   levelBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: 16, borderWidth: 1 },

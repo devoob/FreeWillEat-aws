@@ -26,6 +26,14 @@ const RestaurantSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  photo4: {
+    type: String,
+    required: false,
+  },
+  photo5: {
+    type: String,
+    required: false,
+  },
   region: {
     type: String,
     required: false,
@@ -34,6 +42,22 @@ const RestaurantSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  address: {
+    type: String,
+    required: false,
+  },
+  netLike: {
+    type: Number,
+    default: 0,
+  },
+  likeRatio: {
+    type: Number,
+    required: false,
+  },
+  avgPrice: {
+    type: Number,
+    required: false,
+  }
 }, { timestamps: true });
 
 export default mongoose.model('Restaurant', RestaurantSchema);

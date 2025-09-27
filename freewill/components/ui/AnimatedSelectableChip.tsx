@@ -18,8 +18,9 @@ type Props = {
 import { Animated as RNAnimated } from 'react-native';
 
 export const AnimatedSelectableChip: React.FC<Props> = ({ label, selected, onToggle, activeColor, style, textStyle }) => {
+  console.log(`AnimatedSelectableChip ${label}: selected=${selected}`);
   const pressScale = useRef(new RNAnimated.Value(1)).current;
-  const selectValue = useRef(new RNAnimated.Value(selected ? 1 : 0)).current;
+  const selectValue = useRef(new RNAnimated.Value(0)).current;
 
   // Animate when selection state changes
   useEffect(() => {
@@ -28,7 +29,7 @@ export const AnimatedSelectableChip: React.FC<Props> = ({ label, selected, onTog
       duration: 220,
       useNativeDriver: false,
     }).start();
-  }, [selected, selectValue]);
+  }, [selected]);
 
   // Background color interpolation
   const backgroundColor = selectValue.interpolate({
@@ -44,7 +45,7 @@ export const AnimatedSelectableChip: React.FC<Props> = ({ label, selected, onTog
   const handlePressIn = () => {
     RNAnimated.spring(pressScale, {
       toValue: 0.94,
-      useNativeDriver: true,
+      useNativeDriver: false,
       speed: 30,
       bounciness: 0,
     }).start();
@@ -53,7 +54,7 @@ export const AnimatedSelectableChip: React.FC<Props> = ({ label, selected, onTog
   const handlePressOut = () => {
     RNAnimated.spring(pressScale, {
       toValue: 1,
-      useNativeDriver: true,
+      useNativeDriver: false,
       speed: 20,
       bounciness: 6,
     }).start();
@@ -68,8 +69,8 @@ export const AnimatedSelectableChip: React.FC<Props> = ({ label, selected, onTog
     // Pulse if becoming selected
     if (!selected) {
       RNAnimated.sequence([
-        RNAnimated.spring(pressScale, { toValue: 1.06, useNativeDriver: true, speed: 20, bounciness: 6 }),
-        RNAnimated.spring(pressScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }),
+        RNAnimated.spring(pressScale, { toValue: 1.06, useNativeDriver: false, speed: 20, bounciness: 6 }),
+        RNAnimated.spring(pressScale, { toValue: 1, useNativeDriver: false, speed: 20, bounciness: 6 }),
       ]).start();
     }
   };

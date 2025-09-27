@@ -71,14 +71,14 @@ const Settings = () => {
 
         {/* User summary row */}
         <View style={[styles.userCard, { backgroundColor: themeColors.backgroundWhite, borderColor: themeColors.borderLight }]}> 
-          <View style={[styles.avatar, { backgroundColor: `${themeColors.secondary}20` }]}> 
+          <View style={[styles.avatar, { backgroundColor: `${themeColors.secondary}20` }]}>
             <Text style={{ color: themeColors.secondary, fontWeight: '600', fontSize: 18 }}>
-              {(user?.fullName || user?.email || 'U').charAt(0).toUpperCase()}
+              {(user?.username || user?.email || 'U').charAt(0).toUpperCase()}
             </Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.userName, { color: themeColors.textPrimary }]} numberOfLines={1}>
-              {user?.fullName || user?.email?.split('@')[0] || 'User'}
+              {user?.username || user?.email?.split('@')[0] || 'User'}
             </Text>
             <Text style={[styles.userSub, { color: themeColors.textSecondary }]} numberOfLines={1}>
               {user?.email || 'No email'}

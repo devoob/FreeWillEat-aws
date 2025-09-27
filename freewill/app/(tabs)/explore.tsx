@@ -346,6 +346,7 @@ export default function ExploreScreen() {
       fontWeight: typography.fontWeight.medium,
     },
     addressText: { fontSize: typography.fontSize.md, color: themeColors.textPrimary, marginBottom: spacing.md, lineHeight: 20 },
+    priceText: { fontSize: typography.fontSize.md, color: themeColors.textPrimary, marginBottom: spacing.md, lineHeight: 20, fontWeight: typography.fontWeight.medium },
     photoInfo: { fontSize: typography.fontSize.sm, color: themeColors.textSecondary, marginTop: spacing.md, fontStyle: 'italic' },
     // Comments
     commentsContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
@@ -493,6 +494,7 @@ export default function ExploreScreen() {
                     <Text style={styles.restaurantName}>{selectedPhoto.restaurantName || 'Unknown Restaurant'}</Text>
                     {selectedPhoto.region && <Text style={styles.regionText}>{selectedPhoto.region}</Text>}
                     {selectedPhoto.address && <Text style={styles.addressText}>📍 {selectedPhoto.address}</Text>}
+                    {selectedPhoto.avgPrice && <Text style={styles.priceText}>💰 Average Price: ${selectedPhoto.avgPrice}</Text>}
                     <Text style={styles.photoInfo}>Restaurant photo from our collection</Text>
                   </View>
 

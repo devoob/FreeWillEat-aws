@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { verifyAppleToken } from '../utils/appleAuth.js';
-import { ensureUserHasFullName } from '../utils/nameGenerator.js';
+import { ensureUserHasFullName, ensureUserHasNamesAndUsername } from '../utils/nameGenerator.js';
 
 // Register
 const register = async (req, res) => {
@@ -13,6 +13,9 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({ email, password: hashedPassword });
+
+    // Generate unique fullName and username for new user
+    await ensureUserHasNamesAndUsername(user);
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -67,8 +70,8 @@ const getUser = async (req, res) => {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) return res.status(404).json({ msg: 'User not found' });
     
-    // Ensure user has a fullName, generate one if needed
-    await ensureUserHasFullName(user);
+    // Ensure user has both fullName and username, generate them if needed
+    await ensureUserHasNamesAndUsername(user);
     
     return res.status(200).json(user);
   } catch (err) {
@@ -146,7 +149,10 @@ const appleLogin = async (req, res) => {
           fullName: fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() : '',
           authProvider: 'apple',
         });
-        
+
+        // Generate unique username for Apple user
+        await ensureUserHasNamesAndUsername(newUser);
+
         const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
         
         const userObj = newUser.toObject();
@@ -259,4 +265,45 @@ const getApiUsage = async (req, res) => {
   }
 };
 
-export { register, login, logout, getUser, appleLogin, linkAccount, getApiUsage };
+// Update user profile
+const updateProfile = async (req, res) => {
+  try {
+    const { username, fullName } = req.body;
+    const userId = req.user.id;
+
+    // Find and update user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Check if username is being updated and if it's unique
+    if (username !== undefined && username !== user.username) {
+      const existingUser = await User.findOne({ username, _id: { $ne: userId } });
+      if (existingUser) {
+        return res.status(400).json({ msg: 'Username already taken' });
+      }
+      user.username = username;
+    }
+
+    // Update fullName if provided
+    if (fullName !== undefined) user.fullName = fullName;
+
+    await user.save();
+
+    // Return updated user without password
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return res.status(200).json({
+      success: true,
+      user: userObj,
+      message: 'Profile updated successfully'
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    return res.status(500).json({ msg: 'Server error updating profile' });
+  }
+};
+
+export { register, login, logout, getUser, appleLogin, linkAccount, getApiUsage, updateProfile };

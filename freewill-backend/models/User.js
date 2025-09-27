@@ -32,6 +32,11 @@ const UserSchema = new mongoose.Schema({
     enum: ['local', 'apple'],
     default: 'local',
   },
+  username: {
+    type: String,
+    unique: true,
+    sparse: true
+  }
 }, { timestamps: true });
 
 export default mongoose.model('User', UserSchema);

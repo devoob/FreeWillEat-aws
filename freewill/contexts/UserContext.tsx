@@ -13,6 +13,7 @@ type User = {
   id: string;
   email: string;
   fullName?: string;
+  username?: string;
 };
 
 type SavedRestaurant = {
@@ -36,6 +37,7 @@ type AuthContextType = {
   logout: () => Promise<void>;
   verifyToken: () => Promise<void>;
   setUser: (user: User | null) => void;
+  updateUser: (updates: Partial<User>) => Promise<void>;
   saveRestaurant: (restaurant: SavedRestaurant) => void;
   unsaveRestaurant: (restaurantId: string) => void;
   isRestaurantSaved: (restaurantId: string) => boolean;
@@ -155,6 +157,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
+  const updateUser = async (updates: Partial<User>) => {
+    try {
+      const token = await SecureStore.getItemAsync('token');
+      if (!token) throw new Error('No token found');
+
+      const res = await fetch(`http://${LOCALHOST}:3001/api/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setUser(data.user);
+      } else {
+        throw new Error(data.msg || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Update user error:', error);
+      throw error;
+    }
+  };
+
   const verifyToken = async () => {
     const token = await SecureStore.getItemAsync('token');
     if (token) {
@@ -232,9 +260,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       register, 
       login, 
       appleLogin, 
-      logout, 
-      verifyToken, 
+      logout,
+      verifyToken,
       setUser,
+      updateUser,
       saveRestaurant,
       unsaveRestaurant,
       isRestaurantSaved

@@ -680,7 +680,9 @@ export default function AIChatScreen() {
               <Text style={styles.statText}>Restaurant search</Text>
             </View>
           </View>
-        )}      {/* Chat Sidebar Modal */}
+        )}
+
+      {/* Chat Sidebar Modal */}
       <Modal
         visible={sidebarVisible}
         animationType="slide"
@@ -791,17 +793,19 @@ export default function AIChatScreen() {
       >
         <ScrollView
           style={styles.chatContainer}
-          contentContainerStyle={{ 
+          contentContainerStyle={{
             paddingBottom: keyboardVisible ? spacing.lg : spacing.sm,
             paddingTop: messages.length > 0 ? spacing.lg : 0
           }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="never"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
           ref={scrollViewRef}
           onContentSizeChange={() => {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             scrollViewRef.current?.scrollToEnd({ animated: true });
           }}
+          onScrollBeginDrag={Keyboard.dismiss}
         >
           {messages.map((msg, index) => (
             <View
@@ -867,20 +871,25 @@ export default function AIChatScreen() {
               </TouchableOpacity>
             )}
           </View>
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              { opacity: input.trim().length === 0 || loading ? 0.5 : 1 }
-            ]}
-            onPress={handleSend}
-            disabled={loading || input.trim().length === 0}
-          >
-            {loading ? (
-              <ActivityIndicator size={18} color="#ffffff" />
-            ) : (
-              <MaterialIcons name="send" size={20} color="#ffffff" />
-            )}
-          </TouchableOpacity>
+          {(() => {
+            const isTextInside = input.trim().length > 0;
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  { opacity: isTextInside && !loading ? 1 : 0.5 }
+                ]}
+                onPress={handleSend}
+                disabled={loading || !isTextInside}
+              >
+                {loading ? (
+                  <ActivityIndicator size={18} color="#ffffff" />
+                ) : (
+                  <MaterialIcons name="send" size={20} color="#ffffff" />
+                )}
+              </TouchableOpacity>
+            );
+          })()}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

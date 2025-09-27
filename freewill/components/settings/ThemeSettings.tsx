@@ -21,7 +21,7 @@ const modeMeta: Record<ThemeMode, { icon: string; label: string }> = {
 const ThemeSettings: React.FC<ThemeSettingsProps> = ({ showThemeSettings, onToggle }) => {
   const { themeMode, setThemeMode, activeTheme } = useTheme();
   const themeColors = getColors(activeTheme);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(showThemeSettings ? 1 : 0)).current;
 
   useEffect(() => {
     if (showThemeSettings) {
