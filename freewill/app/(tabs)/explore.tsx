@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/UserContext';
 import { getColors, spacing, typography, borderRadius } from '@/styles/globalStyles';
 import { fetchRestaurantPhotos, RestaurantPhoto } from '@/services/restaurantService';
 
@@ -25,6 +26,7 @@ const PHOTO_SIZE = SCREEN_WIDTH / 3; // 3 columns
 
 export default function ExploreScreen() {
   const { activeTheme } = useTheme();
+  const { saveRestaurant, unsaveRestaurant, isRestaurantSaved, savedRestaurants } = useAuth();
   const themeColors = getColors(activeTheme);
 
   // Photos + search
@@ -51,6 +53,15 @@ export default function ExploreScreen() {
   useEffect(() => {
     loadPhotos();
   }, []);
+
+  // Sync savedPhotos with global savedRestaurants
+  useEffect(() => {
+    const newSavedPhotos: Record<string, boolean> = {};
+    savedRestaurants.forEach(restaurant => {
+      newSavedPhotos[restaurant.id] = true;
+    });
+    setSavedPhotos(newSavedPhotos);
+  }, [savedRestaurants]);
 
   const loadPhotos = async () => {
     try {
@@ -108,16 +119,18 @@ export default function ExploreScreen() {
     if (!selectedPhoto) return;
     const id = selectedPhoto.id;
     
-    // Animate like button
+    // Animate like button with smoother spring bounce
     Animated.sequence([
-      Animated.timing(likeAnimation, {
-        toValue: 1.3,
-        duration: 100,
+      Animated.spring(likeAnimation, {
+        toValue: 1.4,
+        friction: 5,
+        tension: 140,
         useNativeDriver: true,
       }),
-      Animated.timing(likeAnimation, {
+      Animated.spring(likeAnimation, {
         toValue: 1,
-        duration: 150,
+        friction: 7,
+        tension: 120,
         useNativeDriver: true,
       }),
     ]).start();
@@ -132,22 +145,39 @@ export default function ExploreScreen() {
   const toggleSave = () => {
     if (!selectedPhoto) return;
     const id = selectedPhoto.id;
+    const wasSaved = savedPhotos[id];
     
-    // Animate save button
+    // Animate save button with spring for smoother feel
     Animated.sequence([
-      Animated.timing(saveAnimation, {
-        toValue: 1.2,
-        duration: 120,
+      Animated.spring(saveAnimation, {
+        toValue: 1.35,
+        friction: 5,
+        tension: 150,
         useNativeDriver: true,
       }),
-      Animated.timing(saveAnimation, {
+      Animated.spring(saveAnimation, {
         toValue: 1,
-        duration: 180,
+        friction: 7,
+        tension: 120,
         useNativeDriver: true,
       }),
     ]).start();
 
+    // Update local state
     setSavedPhotos((prev) => ({ ...prev, [id]: !prev[id] }));
+
+    // Update global saved restaurants
+    if (wasSaved) {
+      unsaveRestaurant(id);
+    } else {
+      saveRestaurant({
+        id: selectedPhoto.id,
+        name: selectedPhoto.restaurantName || 'Unknown Restaurant',
+        image: selectedPhoto.url,
+        cuisine: selectedPhoto.region,
+        rating: 4.2 // Default rating for now
+      });
+    }
   };
 
   const addComment = () => {
@@ -294,6 +324,13 @@ export default function ExploreScreen() {
     },
     actionLeft: { flexDirection: 'row', alignItems: 'center' },
     actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.lg },
+    iconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     actionText: { marginLeft: spacing.xs, fontSize: typography.fontSize.md, color: themeColors.textPrimary },
     modalDetails: { padding: spacing.lg },
     restaurantName: {
@@ -346,7 +383,6 @@ export default function ExploreScreen() {
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={themeColors.secondary} />
-          <Text style={styles.loadingText}>Loading photos...</Text>
         </View>
       </View>
     );
@@ -422,22 +458,22 @@ export default function ExploreScreen() {
                   {/* Actions */}
                   <View style={styles.actionBar}>
                     <View style={styles.actionLeft}>
-                      <TouchableOpacity onPress={toggleLike} style={styles.actionButton} activeOpacity={1}>
-                        <Animated.View style={{ transform: [{ scale: likeAnimation }] }}>
+                      <TouchableOpacity onPress={toggleLike} style={styles.actionButton} activeOpacity={0.8}>
+                        <Animated.View style={[styles.iconCircle, { transform: [{ scale: likeAnimation }] }]}> 
                           <MaterialIcons
                             name={likedPhotos[selectedPhoto.id] ? 'favorite' : 'favorite-border'}
-                            size={24}
+                            size={30}
                             color={likedPhotos[selectedPhoto.id] ? themeColors.secondary : themeColors.textPrimary}
                           />
                         </Animated.View>
-                        <Text style={styles.actionText}>{likesCount[selectedPhoto.id] ?? 0}</Text>
+                        <Text style={[styles.actionText, { fontWeight: typography.fontWeight.medium }]}>{likesCount[selectedPhoto.id] ?? 0}</Text>
                       </TouchableOpacity>
 
-                      <TouchableOpacity onPress={toggleSave} style={styles.actionButton} activeOpacity={1}>
-                        <Animated.View style={{ transform: [{ scale: saveAnimation }] }}>
+                      <TouchableOpacity onPress={toggleSave} style={styles.actionButton} activeOpacity={0.8}>
+                        <Animated.View style={[styles.iconCircle, { transform: [{ scale: saveAnimation }] }]}> 
                           <MaterialIcons
                             name={savedPhotos[selectedPhoto.id] ? 'bookmark' : 'bookmark-border'}
-                            size={24}
+                            size={30}
                             color={savedPhotos[selectedPhoto.id] ? themeColors.secondary : themeColors.textPrimary}
                           />
                         </Animated.View>
@@ -445,8 +481,10 @@ export default function ExploreScreen() {
                     </View>
 
                     <View style={styles.actionButton}>
-                      <MaterialIcons name="mode-comment" size={24} color={themeColors.textPrimary} />
-                      <Text style={styles.actionText}>{(photoComments[selectedPhoto.id] ?? []).length}</Text>
+                      <View style={styles.iconCircle}>
+                        <MaterialIcons name="mode-comment" size={30} color={themeColors.textPrimary} />
+                      </View>
+                      <Text style={[styles.actionText, { fontWeight: typography.fontWeight.medium }]}>{(photoComments[selectedPhoto.id] ?? []).length}</Text>
                     </View>
                   </View>
 

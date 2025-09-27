@@ -10,6 +10,7 @@ interface CollapsibleSectionHeaderProps {
   icon: keyof typeof MaterialIcons.glyphMap;
   isExpanded: boolean;
   onToggle: () => void;
+  iconColor?: string;
 }
 
 const CollapsibleSectionHeader: React.FC<CollapsibleSectionHeaderProps> = ({
@@ -18,6 +19,7 @@ const CollapsibleSectionHeader: React.FC<CollapsibleSectionHeaderProps> = ({
   icon,
   isExpanded,
   onToggle,
+  iconColor,
 }) => {
   const { activeTheme } = useTheme();
   const themeColors = getColors(activeTheme);
@@ -35,7 +37,7 @@ const CollapsibleSectionHeader: React.FC<CollapsibleSectionHeaderProps> = ({
         activeOpacity={0.7}
       >
         <View style={styles.headerLeftRow}>
-          <MaterialIcons name={icon} size={24} color={themeColors.textPrimary} style={styles.leadingIcon} />
+          <MaterialIcons name={icon} size={24} color={iconColor || themeColors.textPrimary} style={styles.leadingIcon} />
           <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]} numberOfLines={1}>
             {title}
           </Text>

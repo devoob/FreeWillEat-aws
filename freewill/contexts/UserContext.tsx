@@ -15,15 +15,30 @@ type User = {
   fullName?: string;
 };
 
+type SavedRestaurant = {
+  id: string;
+  name: string;
+  image?: string;
+  cuisine?: string;
+  rating?: number;
+};
+
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  savedRestaurants: SavedRestaurant[];
+  onboardingCompleted: boolean;
+  completeOnboarding: () => void;
+  resetOnboarding: () => void;
   register: (email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   appleLogin: () => Promise<{ needsAccountLinking?: boolean; identityToken?: string }>;
   logout: () => Promise<void>;
   verifyToken: () => Promise<void>;
   setUser: (user: User | null) => void;
+  saveRestaurant: (restaurant: SavedRestaurant) => void;
+  unsaveRestaurant: (restaurantId: string) => void;
+  isRestaurantSaved: (restaurantId: string) => boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +48,26 @@ const LOCALHOST = process.env.EXPO_PUBLIC_LOCALHOST || 'localhost';
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [savedRestaurants, setSavedRestaurants] = useState<SavedRestaurant[]>([]);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const ONBOARDING_KEY = 'onboardingCompleted';
+
+  const saveRestaurant = (restaurant: SavedRestaurant) => {
+    setSavedRestaurants(prev => {
+      if (!prev.find(r => r.id === restaurant.id)) {
+        return [...prev, restaurant];
+      }
+      return prev;
+    });
+  };
+
+  const unsaveRestaurant = (restaurantId: string) => {
+    setSavedRestaurants(prev => prev.filter(r => r.id !== restaurantId));
+  };
+
+  const isRestaurantSaved = (restaurantId: string) => {
+    return savedRestaurants.some(r => r.id === restaurantId);
+  };
 
   const register = async (email: string, password: string) => {
     const res = await fetch(`http://${LOCALHOST}:3001/api/auth/register`, {
@@ -167,8 +202,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkToken();
   }, []);
 
+  const loadOnboarding = async () => {
+    try {
+      const val = await SecureStore.getItemAsync(ONBOARDING_KEY);
+      if (val === 'true') setOnboardingCompleted(true);
+    } catch {}
+  };
+
+  const completeOnboarding = async () => {
+    setOnboardingCompleted(true);
+    try { await SecureStore.setItemAsync(ONBOARDING_KEY, 'true'); } catch {}
+  };
+
+  const resetOnboarding = async () => {
+    setOnboardingCompleted(false);
+    try { await SecureStore.deleteItemAsync(ONBOARDING_KEY); } catch {}
+  };
+
+  useEffect(() => { loadOnboarding(); }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, appleLogin, logout, verifyToken, setUser }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      savedRestaurants,
+      onboardingCompleted,
+      completeOnboarding,
+      resetOnboarding,
+      register, 
+      login, 
+      appleLogin, 
+      logout, 
+      verifyToken, 
+      setUser,
+      saveRestaurant,
+      unsaveRestaurant,
+      isRestaurantSaved
+    }}>
       {children}
     </AuthContext.Provider>
   );

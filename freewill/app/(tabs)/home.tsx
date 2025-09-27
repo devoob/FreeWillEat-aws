@@ -146,7 +146,7 @@ const Home = () => {
   const router = useRouter();
   const themeColors = getColors(activeTheme);
   const componentStyles = getComponentStyles(activeTheme);
-  const { logout, user } = useAuth();
+  const { logout, user, saveRestaurant } = useAuth();
 
   // Animation values
   const likeButtonScale = useSharedValue(1);
@@ -293,6 +293,8 @@ const Home = () => {
     setCurrentIndex(prev => prev + 1);
   };
 
+  const LIKED_THRESHOLD = 5;
+
   const handleSwipeRight = (restaurant: Restaurant) => {
     console.log('Liked:', restaurant.name);
     const newLikedRestaurants = [...likedRestaurants, restaurant];
@@ -310,11 +312,18 @@ const Home = () => {
       });
     });
     
-    // Show liked screen after 5 likes
-    if (newLikedRestaurants.length === 5) {
+    // Show liked screen after reaching threshold (>= guards against missed exact equality)
+    if (newLikedRestaurants.length >= LIKED_THRESHOLD && !showLikedScreen) {
       setShowLikedScreen(true);
     }
   };
+
+  // Safety effect: in case state batching skipped in-flight modal, ensure modal appears once threshold reached
+  useEffect(() => {
+    if (likedRestaurants.length >= LIKED_THRESHOLD && !showLikedScreen) {
+      setShowLikedScreen(true);
+    }
+  }, [likedRestaurants, showLikedScreen]);
 
 
   const resetCards = () => {
@@ -324,9 +333,8 @@ const Home = () => {
   };
 
   const closeLikedScreen = () => {
-    setShowLikedScreen(false);
-    // Reset likes after viewing the liked restaurants
-    setLikedRestaurants([]);
+  setShowLikedScreen(false);
+  // Keep liked restaurants so user can still save later unless they reset or hit Save All.
   };
 
   // Show loading screen until everything is ready
@@ -348,6 +356,28 @@ const Home = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeScreenContainer style={[{ backgroundColor: themeColors.background }, styles.container]}>
+        {/* Top Bar */}
+        <View style={styles.topBar}>
+          <Text style={[styles.discoverTitle, { color: themeColors.textPrimary }]}>Discover</Text>
+          <Animated.View style={likeButtonAnimatedStyle}>
+            <TouchableOpacity 
+              style={[styles.modernLikeButton, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setShowLikedScreen(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.likeButtonContent}>
+                <MaterialIcons name="favorite" size={28} color="#ffffff" />
+                <Text style={styles.likeButtonText}>{likedRestaurants.length}</Text>
+              </View>
+              {likedRestaurants.length > 0 && (
+                <View style={[styles.likeButtonBadge, { backgroundColor: '#ff4757' }]}> 
+                  <Text style={styles.badgeText}>!</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+
         {/* Cards Container */}
         <View style={componentStyles.swipeCardContainer}>
         {currentIndex >= restaurants.length ? (
@@ -392,46 +422,8 @@ const Home = () => {
       </View>
 
 
-      {/* Modern Like Button */}
-      <View style={styles.floatingControls}>
-        {/* Pulse background for visual appeal */}
-        <Animated.View 
-          style={[
-            styles.pulseBackground, 
-            { backgroundColor: `${themeColors.secondary}20` },
-            pulseAnimatedStyle
-          ]} 
-        />
-        <Animated.View style={likeButtonAnimatedStyle}>
-          <TouchableOpacity 
-            style={[
-              styles.modernLikeButton, 
-              { backgroundColor: themeColors.secondary },
-              activeTheme === 'dark' && styles.darkModeButton
-            ]}
-            onPress={() => setShowLikedScreen(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.likeButtonContent}>
-              <MaterialIcons name="favorite" size={18} color="#ffffff" />
-              <Text style={styles.likeButtonText}>{likedRestaurants.length}</Text>
-            </View>
-            {likedRestaurants.length > 0 && (
-              <View style={[styles.likeButtonBadge, { backgroundColor: '#ff4757' }]}>
-                <Text style={styles.badgeText}>!</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
+  {/* (Removed old floating like button; integrated into top bar) */}
 
-      {/* Debug Logout Button */}
-      <TouchableOpacity 
-        style={styles.logoutButton}
-        onPress={async () => {await logout(); router.replace('/login')}}
-      >
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
 
       {/* Liked Restaurants Modal */}
       <Modal
@@ -442,11 +434,9 @@ const Home = () => {
         <SafeScreenContainer style={[{ backgroundColor: themeColors.background }, styles.container]}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>
-              Your Liked Restaurants 🎉
-            </Text>
-            <TouchableOpacity onPress={closeLikedScreen} style={styles.closeButton}>
-              <MaterialIcons name="close" size={24} color={themeColors.textSecondary} />
+            <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>Your Liked Restaurants</Text>
+            <TouchableOpacity onPress={closeLikedScreen} style={styles.closeButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <MaterialIcons name="close" size={30} color={themeColors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -479,13 +469,24 @@ const Home = () => {
               </View>
             ))}
 
-            <TouchableOpacity 
-              style={[styles.continueButton, { backgroundColor: themeColors.secondary }]}
-              onPress={closeLikedScreen}
-            >
-              <Text style={styles.continueButtonText}>Continue Discovering</Text>
-            </TouchableOpacity>
+            <View style={{ height: likedRestaurants.length === 5 ? 140 : 40 }} />
           </ScrollView>
+          {likedRestaurants.length === 5 && (
+            <View style={[styles.saveFooter, { backgroundColor: themeColors.backgroundWhite, borderTopColor: (themeColors as any).border || 'rgba(0,0,0,0.1)' }]}> 
+              <TouchableOpacity style={[styles.saveFooterButton, { backgroundColor: themeColors.secondary }]} onPress={() => {
+                likedRestaurants.forEach(r => {
+                  saveRestaurant({ id: r.id, name: r.name, image: r.image, cuisine: r.type, rating: r.rating });
+                });
+                setLikedRestaurants([]); // clear after saving
+                setShowLikedScreen(false);
+              }}>
+                <Text style={styles.saveFooterButtonText}>Save All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveFooterClose} onPress={closeLikedScreen}>
+                <Text style={[styles.saveFooterCloseText, { color: themeColors.textSecondary }]}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </SafeScreenContainer>
       </Modal>
 
@@ -500,11 +501,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  floatingControls: {
+  topBar: {
     position: 'absolute',
-    top: 60,
-    left: spacing.xl,
+    top: 50,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     zIndex: 1000,
+  },
+  discoverTitle: {
+  fontSize: 34,
+  fontWeight: '800',
+  letterSpacing: 0.5,
+  },
+  floatingControlsRight: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -517,11 +531,9 @@ const styles = StyleSheet.create({
   },
   modernLikeButton: {
     position: 'relative',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    minWidth: 80,
-    height: 44,
-    borderRadius: 22,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -530,24 +542,17 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   darkModeButton: {
     borderColor: 'rgba(255,255,255,0.1)',
     shadowOpacity: 0.4,
   },
   likeButtonContent: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  likeButtonText: {
-    color: '#ffffff',
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.semibold,
-    letterSpacing: 0.5,
-  },
+  likeButtonText: { display: 'none' },
   likeButtonBadge: {
     position: 'absolute',
     top: -6,
@@ -570,6 +575,16 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
   },
+  actionRow: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.xl },
+  secondaryButton: { flex: 1, borderWidth: 1, borderRadius: 14, paddingVertical: spacing.md, alignItems: 'center' },
+  secondaryButtonText: { fontSize: 14, fontWeight: '600' },
+  primaryButton: { flex: 1, borderRadius: 14, paddingVertical: spacing.md, alignItems: 'center' },
+  primaryButtonText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  saveFooter: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl, borderTopWidth: 1 },
+  saveFooterButton: { borderRadius: 16, paddingVertical: spacing.md, alignItems: 'center' },
+  saveFooterButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  saveFooterClose: { marginTop: spacing.md, alignItems: 'center' },
+  saveFooterCloseText: { fontSize: 14, fontWeight: '600' },
   resetButton: {
     padding: spacing.md,
     borderRadius: 25,
@@ -627,8 +642,9 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   modalTitle: {
-    fontSize: typography.fontSize.xl,
+    fontSize: 34,
     fontWeight: typography.fontWeight.bold,
+    flex: 1,
   },
   closeButton: {
     padding: spacing.sm,

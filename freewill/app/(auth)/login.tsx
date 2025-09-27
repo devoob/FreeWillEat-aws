@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Alert, StyleSheet, Text, TextInput, View, Platform } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, View, Platform, TouchableOpacity } from 'react-native';
 import Button from '@/components/ui/Button';
 import LinkText from '@/components/ui/LinkText';
 import SafeScreenContainer from '@/components/ui/SafeScreenContainer';
@@ -28,7 +28,7 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      router.replace('/home'); // Redirect to home if user is already logged in
+      router.replace('/home'); // always skip onboarding on login per new requirement
     }
   }, [user, router]);
   
@@ -41,7 +41,7 @@ export default function Login() {
     
     login(email, password)
     .then(() => {
-      router.replace('/home'); // Navigate to home after successful login
+      router.replace('/home');
     })
     .catch((error) => {
       Alert.alert('Error', error.message || 'Login failed');
@@ -51,8 +51,6 @@ export default function Login() {
   const handleAppleLogin = useCallback(() => {
     appleLogin()
     .then(() => {
-      console.log('Navigating to home');
-      // Navigate to home after successful Apple login
       router.replace('/home');
     })
     .catch((error) => {
@@ -63,6 +61,9 @@ export default function Login() {
 
   return (
     <SafeScreenContainer style={[themeStyles.safeScreenContainer, { backgroundColor: themeColors.background }]}>
+      <TouchableOpacity style={styles.backLandingButton} onPress={() => router.replace('/')}> 
+        <Text style={[styles.backLandingText, { color: themeColors.secondary }]}>Back</Text>
+      </TouchableOpacity>
       <KeyboardAwareScrollView 
         style={themeStyles.scrollContainer}
         contentContainerStyle={[themeStyles.scrollContent, styles.container]}
@@ -192,4 +193,6 @@ const styles = StyleSheet.create({
   registerText: {
     fontSize: typography.fontSize.md,
   },
+  backLandingButton: { position: 'absolute', top: spacing.massive, right: spacing.md, zIndex: 10, padding: spacing.sm },
+  backLandingText: { fontSize: typography.fontSize.lg, fontWeight: '700', letterSpacing: 0.5 },
 });

@@ -16,6 +16,7 @@ import {
   Modal,
   Alert,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -55,6 +56,17 @@ export default function AIChatScreen() {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  // Animated pulse for header orb
+  const headerPulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(headerPulse, { toValue: 1, duration: 1800, useNativeDriver: true }),
+        Animated.timing(headerPulse, { toValue: 0, duration: 1800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [headerPulse]);
 
   // Load chat sessions on mount
   useEffect(() => {
@@ -266,38 +278,48 @@ export default function AIChatScreen() {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: themeColors.background,
-    },
-    modernHeader: {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.lg,
       backgroundColor: themeColors.backgroundWhite,
+    },
+    aiHeader: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: themeColors.borderLight,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: spacing.lg,
+      backgroundColor: themeColors.backgroundWhite,
     },
-    headerContent: {
-      flex: 1,
+    aiHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
+    logoOrb: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: themeColors.secondary,
+      justifyContent: 'center',
       alignItems: 'center',
-      gap: 4,
+      shadowColor: themeColors.secondary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 6,
     },
-    modernTitle: {
+    aiHeaderTitle: {
       fontSize: typography.fontSize.xl,
       fontWeight: typography.fontWeight.bold,
       color: themeColors.textPrimary,
-      textAlign: 'center',
+      letterSpacing: 0.5,
     },
-    subtitle: {
-      fontSize: typography.fontSize.sm,
-      color: themeColors.textSecondary,
-      textAlign: 'center',
+    aiHeaderSubtitle: { fontSize: typography.fontSize.sm, color: themeColors.textSecondary, marginTop: 2 },
+    aiHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    headerActionBtn: {
+      padding: spacing.sm,
+      borderRadius: 14,
+      backgroundColor: themeColors.background,
+      borderWidth: 1,
+      borderColor: themeColors.borderLight,
     },
     statsBar: {
       flexDirection: 'row',
@@ -598,19 +620,53 @@ export default function AIChatScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Modern Header with Search Theme */}
-      <View style={styles.modernHeader}>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => setSidebarVisible(true)}
-        >
-          <MaterialIcons name="menu" size={24} color={themeColors.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.modernTitle}>AI-Powered Finder</Text>
-          <Text style={styles.subtitle}>Intelligent Search Assistant</Text>
+      {/* Modern Animated Header */}
+      <View style={styles.aiHeader}>
+        <View style={styles.aiHeaderLeft}>
+          <Animated.View
+            style={[
+              styles.logoOrb,
+              {
+                transform: [
+                  {
+                    scale: headerPulse.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.08],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <MaterialIcons name="auto-awesome" size={24} color="#fff" />
+          </Animated.View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.aiHeaderTitle}>AI Finder</Text>
+            <Text style={styles.aiHeaderSubtitle}>
+              {loading
+                ? 'Thinking...'
+                : messages.length === 0
+                ? 'Ask anything about dining'
+                : `Session • ${messages.length} msgs`}
+            </Text>
+          </View>
         </View>
-        <View style={{ width: 48 }} />
+        <View style={styles.aiHeaderActions}>
+          <TouchableOpacity
+            style={styles.headerActionBtn}
+            onPress={createNewChat}
+            accessibilityLabel="New chat"
+          >
+            <MaterialIcons name="add" size={20} color={themeColors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerActionBtn}
+            onPress={() => setSidebarVisible(true)}
+            accessibilityLabel="History"
+          >
+            <MaterialIcons name="history" size={20} color={themeColors.textPrimary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
         {/* Search Stats Bar */}

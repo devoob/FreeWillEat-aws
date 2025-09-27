@@ -13,7 +13,7 @@ export default function Layout() {
   return (
     <>
       <Tabs screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size, focused }) => {
+  tabBarIcon: ({ color, size, focused }) => {
           let IconComponent: any = MaterialIcons;
           let iconName: string = 'home';
 
@@ -43,24 +43,22 @@ export default function Layout() {
               iconName = 'circle';
           }
 
-          return <IconComponent name={iconName} size={size} color={color} />;
+          // Enlarge icons slightly (focused a bit larger)
+          const finalSize = focused ? size + 4 : size + 2;
+          return <IconComponent name={iconName} size={finalSize} color={color} />;
         },
+        tabBarShowLabel: false,
         tabBarActiveTintColor: themeColors.secondary,
         tabBarInactiveTintColor: themeColors.textTertiary,
         tabBarStyle: {
           backgroundColor: themeColors.backgroundWhite,
           borderTopWidth: 0,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 90,
+          paddingBottom: 14,
+          paddingTop: 14,
+          height: 80,
           paddingHorizontal: 20,
           elevation: 0,
           shadowOpacity: 0,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-          marginTop: 4,
         },
         tabBarItemStyle: {
           paddingVertical: 5,
@@ -70,40 +68,35 @@ export default function Layout() {
           name="home" 
           options={{ 
             headerShown: false, 
-            title: 'Discover',
-            tabBarLabel: 'Discover'
+             title: 'Home'
           }}
         />
         <Tabs.Screen 
           name="explore" 
           options={{ 
             headerShown: false, 
-            title: 'Explore',
-            tabBarLabel: 'Explore'
+            title: 'Explore'
           }}
         />
         <Tabs.Screen 
           name="ai-chat" 
           options={{ 
             headerShown: false, 
-            title: 'AI Chat',
-            tabBarLabel: 'AI Chat'
+            title: 'AI Chat'
           }}
         />
         <Tabs.Screen 
           name="profile" 
           options={{ 
             headerShown: false, 
-            title: 'Profile',
-            tabBarLabel: 'Profile'
+            title: 'Profile'
           }}
         />
         <Tabs.Screen 
           name="settings" 
           options={{ 
             headerShown: false, 
-            title: 'Settings',
-            tabBarLabel: 'Settings'
+            title: 'Settings'
           }}
         />
       </Tabs>

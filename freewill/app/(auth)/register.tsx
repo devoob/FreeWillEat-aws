@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
 import { useAuth } from '@/contexts/UserContext';
 import { useRouter } from 'expo-router';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -24,7 +24,7 @@ export default function Register() {
 
   const router = useRouter();
 
-  const { register } = useAuth();
+  const { register, resetOnboarding } = useAuth();
 
   const handleRegister = useCallback(() => {
     if (!email || !password || !confirmPassword) {
@@ -36,8 +36,9 @@ export default function Register() {
       return;
     }
     register(email, password)
-      .then(() => {
-        router.push('/login'); // Navigate to login after successful registration
+      .then(async () => {
+        await resetOnboarding(); // ensure onboarding sequence starts fresh for new account
+        router.replace('/onboarding/intro');
       })
       .catch((error) => {
         Alert.alert('Error1', error.message,);
@@ -46,6 +47,9 @@ export default function Register() {
 
   return (
     <SafeScreenContainer style={[themeStyles.safeScreenContainer, { backgroundColor: themeColors.background }]}>
+      <TouchableOpacity style={styles.backLandingButton} onPress={() => router.replace('/')}> 
+        <Text style={[styles.backLandingText, { color: themeColors.secondary }]}>Back</Text>
+      </TouchableOpacity>
       <KeyboardAwareScrollView 
         style={themeStyles.scrollContainer}
         contentContainerStyle={[themeStyles.scrollContent, styles.container]}
@@ -146,4 +150,6 @@ const styles = StyleSheet.create({
   loginText: {
     fontSize: typography.fontSize.md,
   },
+  backLandingButton: { position: 'absolute', top: spacing.massive, right: spacing.md, zIndex: 10, padding: spacing.sm },
+  backLandingText: { fontSize: typography.fontSize.lg, fontWeight: '700', letterSpacing: 0.5 },
 });
